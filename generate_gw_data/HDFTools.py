@@ -6,9 +6,13 @@ Provide classes and functions for reading and writing HDF files.
 # IMPORTS
 # -----------------------------------------------------------------------------
 
+from __future__ import print_function
 import numpy as np
 import h5py
 import os
+import sys
+
+from Constants import GW150914_TIME, GW151226_TIME, LVT151012_TIME
 
 
 # -----------------------------------------------------------------------------
@@ -52,20 +56,45 @@ def get_file_paths(directory, extensions=None):
 class NoiseTimeline:
 
     def __init__(self,
-                 data_directory):
+                 data_directory,
+                 verbose=False):
 
         # Store the directory of the raw HDF files
         self.data_directory = data_directory
+        self.verbose = verbose
 
         # Get the list of all HDF files in the specified directory
+        self.vprint('Getting HDF file paths...', end=' ')
         self.hdf_file_paths = get_file_paths(self.data_directory,
                                              extensions=['hdf', 'h5'])
+        self.vprint('Done!')
 
         # Read in the meta information and masks from HDF files
+        self.vprint('Reading information from HDF files', end=' ')
         self.hdf_files = self._get_hdf_files()
+        self.vprint('Done!')
 
         # Build the timeline for these HDF files
+        self.vprint('Building timeline object...', end=' ')
         self.timeline = self._build_timeline()
+        self.vprint('Done!')
+
+    # -------------------------------------------------------------------------
+
+    def vprint(self, string, *args, **kwargs):
+        """
+        verbose print: Wrapper around print() to only call it if self.verbose
+        is set to true.
+
+        Args:
+            string: String to be printed if self.verbose is True.
+            *args: arguments passed to print()
+            **kwargs: keyword arguments passed to print()
+        """
+
+        if self.verbose:
+            print(string, *args, **kwargs)
+            sys.stdout.flush()
 
     # -------------------------------------------------------------------------
 
@@ -76,8 +105,11 @@ class NoiseTimeline:
 
         # Open every HDF file once to read in the meta information as well
         # as the injection and data quality (DQ) masks
-        for hdf_file_path in self.hdf_file_paths:
+        n_files = len(self.hdf_file_paths)
+        for i, hdf_file_path in enumerate(self.hdf_file_paths):
             with h5py.File(hdf_file_path, 'r') as f:
+
+                self.vprint('({:>4}/{:>4})...'.format(i, n_files), end=' ')
 
                 # Select necessary information from the HDF file
                 start_time = f['meta']['GPSstart'][()]
@@ -102,7 +134,10 @@ class NoiseTimeline:
                                       inj_mask=inj_mask,
                                       dq_mask=dq_mask))
 
+                self.vprint('\033[15D\033[K', end='')
+
         # Sort the read in HDF files by start time and return them
+        self.vprint('({:>4}/{:>4})...'.format(n_files, n_files), end=' ')
         return sorted(hdf_files, key=lambda _: _['start_time'])
 
     # -------------------------------------------------------------------------
@@ -113,10 +148,10 @@ class NoiseTimeline:
         n_entries = self.gps_end_time - self.gps_start_time
 
         # Initialize the empty timeline
-        timeline = dict(h1_inj_mask=np.full(n_entries, np.nan),
-                        l1_inj_mask=np.full(n_entries, np.nan),
-                        h1_dq_mask=np.full(n_entries, np.nan),
-                        l1_dq_mask=np.full(n_entries, np.nan))
+        timeline = dict(h1_inj_mask=np.zeros(n_entries, dtype=np.int32),
+                        l1_inj_mask=np.zeros(n_entries, dtype=np.int32),
+                        h1_dq_mask=np.zeros(n_entries, dtype=np.int32),
+                        l1_dq_mask=np.zeros(n_entries, dtype=np.int32))
 
         # Add information from HDF files to timeline
         for hdf_file in self.hdf_files:
@@ -148,12 +183,54 @@ class NoiseTimeline:
                  delta_t=256,
                  dq_bits=(0, 1, 2, 3),
                  inj_bits=(0, 1, 2, 4)):
+        """
+        For a given GPS time, test if is a valid time to sample noise from
+        by checking if all data in the interval [gps_time - delta_t,
+        gps_time + delta_t] have the specified dq_bits and inj_bits set.
+
+        Args:
+            gps_time: int
+                The GPS time from which we would like to draw a noise sample.
+            delta_t: int
+                The number of seconds around `gps_time` which we also want
+                to be valid (because the sample will be an interval)
+            dq_bits: tuple of int
+                The Data Quality Bits which one would like to require, see
+                here: https://www.gw-openscience.org/archive/dataset/O1/
+                Example: dq_bits=(0, 1, 2, 3) means that the DQ needs to pass
+                all tests up to `CAT3`.
+            inj_bits: tuple of int
+                The Injection Bits which one would like to require, see
+                here: https://www.gw-openscience.org/archive/dataset/O1/
+                Example: inj_bits=(0, 1, 2, 4) means that only continuous wave
+                (CW) injections are permitted; all recordings containing any
+                of other type of injection will be invalid for sampling.
+
+        Returns:
+
+        """
+
+        # ---------------------------------------------------------------------
+        # Perform some basic sanity checks
+        # ---------------------------------------------------------------------
+
+        assert isinstance(gps_time, int), \
+            'Received GPS time that is not an integer!'
+        assert delta_t >= 0, \
+            'Received an invalid value for delta_t!'
+        assert set(dq_bits).issubset(set(range(7))), \
+            'Invalid Data Quality bit specification passed to is_valid()!'
+        assert set(inj_bits).issubset(set(range(5))), \
+            'Invalid Injection bit specification passed to is_valid()!'
 
         # ---------------------------------------------------------------------
         # Check if given time is too close to a real event
         # ---------------------------------------------------------------------
 
-        # TODO: Implement this!
+        if any(abs(gps_time - _) <= delta_t for _ in (GW150914_TIME,
+                                                      GW151226_TIME,
+                                                      LVT151012_TIME)):
+            return False
 
         # ---------------------------------------------------------------------
         # Select the environment around the specified time
@@ -252,6 +329,18 @@ class NoiseTimeline:
 
     def get_file_paths_for_time(self,
                                 gps_time):
+        """
+        For a given (valid) GPS time, find the two HDF files (for H1 and L1)
+        which contain the corresponding recording.
+
+        Args:
+            gps_time: int
+                A valid GPS time stamp.
+
+        Returns: dict or None
+            A dictionary with keys 'H1', 'L1' containing the paths to the HDF
+            files, or None, if no such files could be found
+        """
 
         # Keep track of the results, i.e., the paths to the HDF files
         result = dict()
@@ -272,6 +361,9 @@ class NoiseTimeline:
             if 'H1' in result.keys() and 'L1' in result.keys():
                 return result
 
+        # If we didn't both files, return None
+        return None
+
     # -------------------------------------------------------------------------
 
     def idx2gps(self, idx):
@@ -286,6 +378,7 @@ class NoiseTimeline:
         Returns:
             The corresponding GPS time.
         """
+
         return idx + self.gps_start_time
 
     # -------------------------------------------------------------------------
@@ -303,6 +396,7 @@ class NoiseTimeline:
         Returns:
             The corresponding time series index.
         """
+
         return gps - self.gps_start_time
 
     # -------------------------------------------------------------------------
@@ -312,6 +406,7 @@ class NoiseTimeline:
         """
         Returns: The GPS start time of the observation run.
         """
+
         return self.hdf_files[0]['start_time']
 
     # -------------------------------------------------------------------------
@@ -321,5 +416,6 @@ class NoiseTimeline:
         """
         Returns: The GPS end time of the observation run.
         """
+
         return self.hdf_files[-1]['start_time'] + \
             self.hdf_files[-1]['duration']
