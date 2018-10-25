@@ -162,7 +162,7 @@ if __name__ == '__main__':
                 print('--', entry['url'], '->', file_path)
 
             else:
-                
+
                 # Print the progress bar and which file is being downloaded
                 # Remember, dataset has been decorated using ProgressBar
                 dataset.write(extras=['Downloading: {}'.format(entry['url'])])
