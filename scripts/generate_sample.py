@@ -351,6 +351,12 @@ if __name__ == '__main__':
     # Postliminaries
     # -------------------------------------------------------------------------
 
+    # PyCBC always create a copy of the waveform parameters file, which we
+    # can delete at the end of the sample generation process
+    duplicate_path = os.path.join('.', config['waveform_params_file_name'])
+    if os.path.exists(duplicate_path):
+        os.remove(duplicate_path)
+
     # Print the total run time
     print('Total runtime: {:.1f} seconds!'
           .format(time.time() - script_start_time))
