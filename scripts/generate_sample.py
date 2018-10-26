@@ -35,6 +35,7 @@ from generate_gw_data.MultiprocessingTools import ThreadsafeIter, \
 from generate_gw_data.WaveformTools import WaveformParameterGenerator, \
     generate_sample  # noqa
 from generate_gw_data.SampleFileTools import SampleFile  # noqa
+from generate_gw_data.TypecastingTools import typecast_static_args  # noqa
 
 
 # -----------------------------------------------------------------------------
@@ -115,7 +116,7 @@ if __name__ == '__main__':
 
     # Define some shortcuts
     random_seed = config['random_seed']
-    data_directory = config['background_data_directory']
+    background_data_directory = config['background_data_directory']
 
     # Set the random seed for this script
     np.random.seed(config['random_seed'])
@@ -124,15 +125,17 @@ if __name__ == '__main__':
     # HDF files in the raw_data_directory and figure out which parts of it
     # are useable (i.e., have the right data quality and injection bits set)
     print('Reading in raw data. This may take a while...', end=' ')
-    noise_timeline = NoiseTimeline(data_directory=data_directory,
-                                   random_seed=random_seed)
+    noise_timeline = \
+        NoiseTimeline(background_data_directory=background_data_directory,
+                      random_seed=random_seed)
 
     # Create a noise time generator so that can sample valid noise times
     # simply by calling next(noise_time_generator)
     noise_times = \
         ThreadsafeIter((noise_timeline.sample(delta_t=config['delta_t'],
                                               dq_bits=config['dq_bits'],
-                                              inj_bits=config['inj_bits'])
+                                              inj_bits=config['inj_bits'],
+                                              return_paths=True)
                         for _ in iter(int, 1)))
     print('Done!')
 
@@ -152,7 +155,7 @@ if __name__ == '__main__':
                                           for _ in iter(int, 1)))
 
     # -------------------------------------------------------------------------
-    # Read in static_args and variable_args defined in the config figle
+    # Read in static_args and variable_args defined in the config file
     # -------------------------------------------------------------------------
 
     # Set up a parser for the PyCBC config file
@@ -163,6 +166,9 @@ if __name__ == '__main__':
     variable_arguments, static_arguments = \
         read_params_from_config(workflow_config_parser)
 
+    # Ensure that static_arguments have the correct types (i.e., not str)
+    static_arguments = typecast_static_args(static_arguments)
+
     # -------------------------------------------------------------------------
     # Set up an argument generator for samples with/without injections
     # -------------------------------------------------------------------------
@@ -171,14 +177,19 @@ if __name__ == '__main__':
     # We need the static_arguments, a (random) event time, and some (random)
     # waveform parameters for the simulation
     def generate_arguments(make_injection=True):
+
+        # Depending on whether we want to make an injection or not,
+        # we either sample a set of parameters or not
         if make_injection:
-            return dict(static_arguments=static_arguments,
-                        event_time=next(noise_times),
-                        waveform_params=next(waveform_parameters))
+            waveform_params = next(waveform_parameters)
         else:
-            return dict(static_arguments=static_arguments,
-                        event_time=next(noise_times),
-                        waveform_params=None)
+            waveform_params = None
+
+        # Return the dict of arguments
+        return dict(static_arguments=static_arguments,
+                    event_tuple=next(noise_times),
+                    delta_t=config['delta_t'],
+                    waveform_params=waveform_params)
 
     # Create thread-safe generator expressions for the arguments_generator()
     arguments_generator_injections = \
@@ -323,7 +334,7 @@ if __name__ == '__main__':
     sample_file_dict['injection_parameters'] = injection_parameters_dict
 
     # Construct the path for the HDF file
-    sample_file_path = os.path.join('..', 'output')
+    sample_file_path = os.path.join('..', 'output', config['output_file_name'])
 
     # Create the SampleFile object and save it to the specified HDF file
     sample_file = SampleFile(data=sample_file_dict)
