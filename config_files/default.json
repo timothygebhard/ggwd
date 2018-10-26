@@ -5,8 +5,8 @@
   "inj_bits": [0, 1, 2, 4],
   "delta_t": 256,
   "waveform_params_file_name": "waveform_params.ini",
-  "n_injection_samples": 10,
-  "n_noise_samples": 10,
+  "n_injection_samples": 32,
+  "n_noise_samples": 16,
   "n_processes": 4,
   "output_file_name": "default.hdf"
 }
