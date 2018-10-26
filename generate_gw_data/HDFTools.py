@@ -12,6 +12,9 @@ import h5py
 import os
 import sys
 
+from pycbc.types.timeseries import TimeSeries
+from lal import LIGOTimeGPS
+
 from Constants import GW150914_TIME, GW151226_TIME, LVT151012_TIME
 
 
@@ -50,18 +53,132 @@ def get_file_paths(directory, extensions=None):
 
 
 # -----------------------------------------------------------------------------
+
+
+def get_strain_from_hdf_file(hdf_file_paths,
+                             gps_time,
+                             delta_t,
+                             original_sampling_rate=4096,
+                             target_sampling_rate=4096,
+                             as_pycbc_timeseries=False):
+    """
+    For a given GPS time, select the interval [gps_time - delta_t,
+    gps_time + delta] from the HDF files specified in hdf_file_paths,
+    and resample them to the given sampling_rate.
+
+    Args:
+        hdf_file_paths (dict):
+            A dictionary {'H1', 'L1'} which holds the paths to the HDF files
+            containing the interval around `gps_time.
+        gps_time (int):
+            A valid noise time (GPS time stamp). See also function
+            `is_valid_noise_time()`.
+        delta_t (int):
+            Half the length of the desired sample (in seconds).
+        original_sampling_rate (int):
+            The original sampling rate (in Hertz) of the HDF files
+            sample; by default, this value should be 4096.
+        target_sampling_rate (int):
+            The sampling rate (in Hertz) to which the strain should be
+            down-sampled (if desired). Must be a divisor of
+            the 'original_sampling_rate'.
+        as_pycbc_timeseries (bool):
+            Whether to return the strain as a dict of numpy arrays or a dict
+            of PyCBC `TimeSeries objects.
+
+    Returns: (dict)
+        The noise sample of length `size`, starting at `time` for both
+        detectors (H1 and L1), with the desired `sampling_rate`,
+        as a dictionary containing numpy arrays.
+    """
+
+    # -------------------------------------------------------------------------
+    # Perform some basic sanity checks on the arguments
+    # -------------------------------------------------------------------------
+
+    assert isinstance(gps_time, int), \
+        'time is not an integer!'
+    assert isinstance(delta_t, int), \
+        'size is not an integer'
+    assert isinstance(original_sampling_rate, int), \
+        'original_sampling_rate is not an integer'
+    assert isinstance(target_sampling_rate, int), \
+        'target_sampling_rate is not an integer'
+    assert original_sampling_rate % target_sampling_rate == 0, \
+        'Invalid target_sampling_rate: Not a divisor of ' \
+        'original_sampling_rate!'
+
+    # -------------------------------------------------------------------------
+    # Read out the strain from the HDF files
+    # -------------------------------------------------------------------------
+
+    # Compute the resampling factor
+    sampling_factor = int(original_sampling_rate / target_sampling_rate)
+
+    # Store the sample we have selected from the HDF files
+    sample = dict()
+
+    # Loop over both detectors
+    for detector in ('H1', 'L1'):
+
+        # Extract the path to the HDF file
+        file_path = hdf_file_paths[detector]
+
+        # Read in the HDF file and select the noise sample
+        with h5py.File(file_path, 'r') as hdf_file:
+
+            # Get the start_time and compute array indices
+            start_time = int(hdf_file['meta']['GPSstart'][()])
+            start_idx = \
+                (gps_time - start_time - delta_t) * original_sampling_rate
+            end_idx = \
+                (gps_time - start_time + delta_t) * original_sampling_rate
+
+            # Select the sample from the strain
+            strain = np.array(hdf_file['strain']['Strain'])
+            sample[detector] = strain[start_idx:end_idx]
+
+            # Down-sample the selected sample to the target_sampling_rate
+            sample[detector] = sample[detector][::sampling_factor]
+
+    # -------------------------------------------------------------------------
+    # Convert to PyCBC time series, if necessary
+    # -------------------------------------------------------------------------
+
+    # If we just want a plain numpy array, we can return it right away
+    if not as_pycbc_timeseries:
+        return sample
+
+    # Otherwise we need to convert the numpy array to a time series first
+    else:
+
+        # Initialize an empty dict for the time series results
+        timeseries = dict()
+
+        # Convert strain of both detectors to a TimeSeries object
+        for detector in ('H1', 'L1'):
+
+            timeseries[detector] = \
+                TimeSeries(initial_array=sample[detector],
+                           delta_t=1.0/target_sampling_rate,
+                           epoch=LIGOTimeGPS(gps_time - delta_t))
+
+        return timeseries
+
+
+# -----------------------------------------------------------------------------
 # CLASS DEFINITIONS
 # -----------------------------------------------------------------------------
 
 class NoiseTimeline:
 
     def __init__(self,
-                 data_directory,
+                 background_data_directory,
                  random_seed=42,
                  verbose=False):
 
-        # Store the directory of the raw HDF files
-        self.data_directory = data_directory
+        # Store the directory and sampling rate of the raw HDF files
+        self.background_data_directory = background_data_directory
 
         # Print debug messages or not?
         self.verbose = verbose
@@ -72,7 +189,7 @@ class NoiseTimeline:
 
         # Get the list of all HDF files in the specified directory
         self.vprint('Getting HDF file paths...', end=' ')
-        self.hdf_file_paths = get_file_paths(self.data_directory,
+        self.hdf_file_paths = get_file_paths(self.background_data_directory,
                                              extensions=['hdf', 'h5'])
         self.vprint('Done!')
 
@@ -240,6 +357,29 @@ class NoiseTimeline:
             return False
 
         # ---------------------------------------------------------------------
+        # Check if the given time is too close to the edge within its HDF file
+        # ---------------------------------------------------------------------
+
+        # Loop over all HDF files to find the one that contains the given
+        # gps_time. Here, we do not distinguish between H1 and L1, because
+        # we assume that the files for the detectors are aligned on a grid.
+        for hdf_file in self.hdf_files:
+
+            # Get the start and end time for the current HDF file
+            start_time = hdf_file['start_time']
+            end_time = start_time + hdf_file['duration']
+
+            # Find the file that contains the given gps_time
+            if start_time < gps_time < end_time:
+
+                # Check if it is far away enough from the edges: If not, it
+                # is not a valid time; otherwise we can still stop searching
+                if not start_time + delta_t < gps_time < end_time - delta_t:
+                    return False
+                else:
+                    break
+
+        # ---------------------------------------------------------------------
         # Select the environment around the specified time
         # ---------------------------------------------------------------------
 
@@ -302,7 +442,8 @@ class NoiseTimeline:
     def sample(self,
                delta_t=256,
                dq_bits=(0, 1, 2, 3),
-               inj_bits=(0, 1, 2, 4)):
+               inj_bits=(0, 1, 2, 4),
+               return_paths=False):
 
         """
         Randomly sample a time from [gps_start_time, gps_end_time] that
@@ -315,9 +456,12 @@ class NoiseTimeline:
                 For an explanation, see is_valid()
             inj_bits: tuple
                 For an explanation, see is_valid()
+            return_paths: boolean
+                Whether or not to return the paths to the HDF files
+                containing the gps_time
 
         Returns:
-            A valid GPS time.
+            A valid GPS time (and optionally a dict with the file paths).
         """
 
         # Keep sampling random times until we find a valid one...
@@ -330,7 +474,10 @@ class NoiseTimeline:
             # If it is a valid time, return it
             if self.is_valid(gps_time=gps_time, delta_t=delta_t,
                              dq_bits=dq_bits, inj_bits=inj_bits):
-                return gps_time
+                if return_paths:
+                    return gps_time, self.get_file_paths_for_time(gps_time)
+                else:
+                    return gps_time
 
     # -------------------------------------------------------------------------
 
