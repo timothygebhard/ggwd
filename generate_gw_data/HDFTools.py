@@ -57,11 +57,18 @@ class NoiseTimeline:
 
     def __init__(self,
                  data_directory,
+                 random_seed=42,
                  verbose=False):
 
         # Store the directory of the raw HDF files
         self.data_directory = data_directory
+
+        # Print debug messages or not?
         self.verbose = verbose
+
+        # Store and set the random seed
+        self.random_seed = random_seed
+        np.random.seed(random_seed)
 
         # Get the list of all HDF files in the specified directory
         self.vprint('Getting HDF file paths...', end=' ')
@@ -292,10 +299,10 @@ class NoiseTimeline:
 
     # -------------------------------------------------------------------------
 
-    def sample_valid_time(self,
-                          delta_t=256,
-                          dq_bits=(0, 1, 2, 3),
-                          inj_bits=(0, 1, 2, 4)):
+    def sample(self,
+               delta_t=256,
+               dq_bits=(0, 1, 2, 3),
+               inj_bits=(0, 1, 2, 4)):
 
         """
         Randomly sample a time from [gps_start_time, gps_end_time] that
