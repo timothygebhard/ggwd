@@ -233,7 +233,7 @@ if __name__ == '__main__':
         # Initialize a Queue and fill it with as many arguments as we
         # want to generate samples
         arguments_queue = JoinableQueue()
-        for item in range(config['n_injection_samples']):
+        for item in range(config['n_samples']):
             arguments_queue.put(next(arguments_generator))
 
         # Initialize a Queue to store the results of the sample generation
