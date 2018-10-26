@@ -2,3 +2,8 @@ h5py
 numpy
 pycbc
 requests
+scipy
+tqdm
+six
+pandas
+lalsuite
