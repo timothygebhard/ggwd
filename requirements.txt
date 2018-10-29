@@ -7,3 +7,4 @@ tqdm
 six
 pandas
 lalsuite
+matplotlib
