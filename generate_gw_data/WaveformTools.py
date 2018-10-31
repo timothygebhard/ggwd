@@ -83,7 +83,7 @@ class WaveformParameterGenerator(object):
 # FUNCTION DEFINITIONS
 # -----------------------------------------------------------------------------
 
-def fade_on(timeseries, alpha=1.0/4):
+def fade_on(timeseries, alpha=0.25):
     """
     Take a PyCBC time series and use a one-sided Tukey window to "fade on"
     the waveform (to reduce discontinuities in the amplitude).
@@ -176,8 +176,8 @@ def get_waveform(static_arguments,
     h_plus, h_cross = simulate_waveform(**simulation_parameters)
 
     # Apply the fade-on filter to them
-    h_plus = fade_on(h_plus)
-    h_cross = fade_on(h_cross)
+    h_plus = fade_on(h_plus, alpha=static_arguments['tukey_alpha'])
+    h_cross = fade_on(h_cross, alpha=static_arguments['tukey_alpha'])
 
     # Resize the simulated waveform to the specified length
     h_plus.resize(length)
