@@ -75,10 +75,10 @@ Some experience values for reference: Generating 32 samples *with* an injection,
 
 ### 1.4 Inspecting the generated samples
 
-As soon as the sample generation process is complete, you can manually inspect the results to get a feel for what they look like. To this end, we have prepared the script `view_samples.py` in the `scripts` directory. You can run it as follows:
+As soon as the sample generation process is complete, you can manually inspect the results to get a feel for what they look like. To this end, we have prepared the script `view_sample.py` in the `scripts` directory. You can run it as follows:
 
 ```shell
-python view_samples.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result/plot
+python view_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result/plot
 ```
 
 If you haven't changed the configuration, you don't even need to specify the `--hdf-file-path` option; per default it will use `./output/default.hdf`. 
