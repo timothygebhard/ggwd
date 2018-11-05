@@ -229,7 +229,7 @@ In case you want to get even deeper into the inner workings of this repository, 
 
 
 
-<img src="./images/sample_generation.png" alt="alt text" width="500">
+<p align="center"><img src="./images/sample_generation.png" alt="alt text" width="500"></p>
 
 
 
@@ -248,4 +248,3 @@ In order to find a piece of background recording into which we can inject a simu
 * The interval does not span over multiple raw HDF files, i.e., the noise time is at least `delta_t` seconds aways from the edge of the HDF file that contains it. (This restriction is only due to convenience and may be dropped if you adjust the `get_strain_from_hdf_file()` method in `/generate_gw_data/HDFTools.py` accordingly)
 
 The entire functionality for finding and sampling valid noise times is contained in the `NoiseTimeline` class defined in `/generate_gw_data/HDFTools.py`. When an instance of that class is instantiated, `_get_hdf_files()` first collects a list of all the raw LIGO recordings in the given `background_data_directory`. Then, the method `_build_timeline()` loops over these files, reads in the `dq_bits` and `inj_bits` arrays, and combines them all into one big timeline (which also explains why this takes some time). This `timeline` is then used by the `is_valid()` method to check the above conditions for a given `gps_time` and a `delta_t`. The `sample()` method then basically only generates random times between the start and the end of the `timeline` until it finds one that is accepted by `is_valid()`.
-
