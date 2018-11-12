@@ -12,6 +12,7 @@ import sys
 import os
 import numpy as np
 from scipy import signal
+from copy import deepcopy
 
 
 from pycbc.distributions import JointDistribution, read_params_from_config, \
@@ -48,7 +49,8 @@ class WaveformParameterGenerator(object):
         config_file = WorkflowConfigParser(configFiles=config_file)
 
         # Extract variable arguments and constraints
-        self.var_args, self.static = read_params_from_config(config_file)
+        # We don't need the static_args here, hence they do not get amended.
+        self.var_args, _ = read_params_from_config(config_file)
         self.constraints = read_constraints_from_config(config_file)
 
         # Extract distributions
@@ -185,6 +187,43 @@ def get_waveform(static_arguments,
 
     return h_plus, h_cross
 
+
+def amend_static_arguments(static_args_):
+    """
+    Amend the static_args from the *.ini configuration file by adding the
+    parameters that can be computed directly from others (more intuitive
+    ones).
+
+    Args:
+        static_args_: dict
+            The original static_args, as read from the *.ini config file.
+
+    Returns:
+        The amended static_args, where implicitly defined variables have
+        been added.
+    """
+
+    # Create a copy of the original static_args
+    static_args = deepcopy(static_args_)
+
+    # If necessary, add delta_t = 1 / target_sampling_rate
+    if 'delta_t' not in static_args.keys():
+        static_args['delta_t'] = 1.0 / static_args['target_sampling_rate']
+
+    # If necessary, add delta_f = 1 / waveform_length
+    if 'delta_f' not in static_args.keys():
+        static_args['delta_f'] = 1.0 / static_args['waveform_length']
+
+    # If necessary, add td_length = waveform_length * target_sampling_rate
+    if 'td_length' not in static_args.keys():
+        static_args['td_length'] = int(static_args['waveform_length'] *
+                                       static_args['target_sampling_rate'])
+
+    # If necessary, add fd_length = td_length / 2 + 1
+    if 'fd_length' not in static_args.keys():
+        static_args['fd_length'] = int(static_args['td_length'] / 2.0 + 1)
+
+    return static_args
 
 # -----------------------------------------------------------------------------
 
