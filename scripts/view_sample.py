@@ -41,10 +41,17 @@ def view_sample(sample_id,
                 save_plot=None):
 
     # Select the sample (i.e., the row from the data frame of samples)
-    sample = all_samples.loc[sample_id]
+    try:
+        sample = all_samples.loc[sample_id]
+    except KeyError:
+        raise KeyError('Given sample_id is too big! Maximum value = {}'.
+                       format(len(all_samples) - 1))
 
     # Check if the sample we have received contains an injection or not
-    has_injection = isinstance(sample['h1_signal'], np.ndarray)
+    if 'h1_signal' in sample.keys():
+        has_injection = isinstance(sample['h1_signal'], np.ndarray)
+    else:
+        has_injection = False
 
     # Read out and construct some necessary values for plotting
 
