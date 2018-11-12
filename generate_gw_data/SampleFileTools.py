@@ -12,6 +12,7 @@ import h5py
 
 from six import iteritems
 from pprint import pformat
+from warnings import warn
 
 
 # -----------------------------------------------------------------------------
@@ -135,27 +136,30 @@ class SampleFile:
 
             # Read in group containing injection samples
             self.data['injection_samples'] = dict()
-            self.data['injection_samples']['event_time'] = \
-                np.array(hdf_file['injection_samples']['event_time'])
-            self.data['injection_samples']['h1_strain'] = \
-                np.array(hdf_file['injection_samples']['h1_strain'])
-            self.data['injection_samples']['l1_strain'] = \
-                np.array(hdf_file['injection_samples']['l1_strain'])
+            for key in ('event_time', 'h1_strain', 'l1_strain'):
+                try:
+                    self.data['injection_samples'][key] = \
+                        np.array(hdf_file['injection_samples'][key])
+                except TypeError:
+                    self.data['injection_samples'][key] = np.array(None)
 
             # Read in group containing noise samples
             self.data['noise_samples'] = dict()
-            self.data['noise_samples']['event_time'] = \
-                np.array(hdf_file['noise_samples']['event_time'])
-            self.data['noise_samples']['h1_strain'] = \
-                np.array(hdf_file['noise_samples']['h1_strain'])
-            self.data['noise_samples']['l1_strain'] = \
-                np.array(hdf_file['noise_samples']['l1_strain'])
+            for key in ('event_time', 'h1_strain', 'l1_strain'):
+                try:
+                    self.data['noise_samples'][key] = \
+                        np.array(hdf_file['noise_samples'][key])
+                except TypeError:
+                    self.data['noise_samples'][key] = np.array(None)
 
             # Read in injection parameters
             self.data['injection_parameters'] = dict()
             for key in hdf_file['/injection_parameters'].keys():
-                self.data['injection_parameters'][key] = \
-                    np.array(hdf_file['injection_parameters'][key])
+                try:
+                    self.data['injection_parameters'][key] = \
+                        np.array(hdf_file['injection_parameters'][key])
+                except TypeError:
+                    self.data['injection_parameters'][key] = np.array(None)
 
     # -------------------------------------------------------------------------
 
@@ -179,28 +183,43 @@ class SampleFile:
             # dict as a new dataset
             group = hdf_file.create_group('injection_samples')
             for key, value in iteritems(self.data['injection_samples']):
-                group.create_dataset(name=key,
-                                     shape=value.shape,
-                                     dtype='f4',
-                                     data=value)
+                if value is not None:
+                    group.create_dataset(name=key,
+                                         shape=value.shape,
+                                         dtype='f4',
+                                         data=value)
+                else:
+                    group.create_dataset(name=key,
+                                         shape=None,
+                                         dtype='f4')
 
             # Create group for noise_samples and save every item of the
             # dict as a new dataset
             group = hdf_file.create_group('noise_samples')
             for key, value in iteritems(self.data['noise_samples']):
-                group.create_dataset(name=key,
-                                     shape=value.shape,
-                                     dtype='f4',
-                                     data=value)
+                if value is not None:
+                    group.create_dataset(name=key,
+                                         shape=value.shape,
+                                         dtype='f4',
+                                         data=value)
+                else:
+                    group.create_dataset(name=key,
+                                         shape=None,
+                                         dtype='f4')
 
             # Create group for injection_parameters and save every item of the
             # dict as a new dataset
             group = hdf_file.create_group('injection_parameters')
             for key, value in iteritems(self.data['injection_parameters']):
-                group.create_dataset(name=key,
-                                     shape=value.shape,
-                                     dtype='f4',
-                                     data=value)
+                if value is not None:
+                    group.create_dataset(name=key,
+                                         shape=value.shape,
+                                         dtype='f4',
+                                         data=value)
+                else:
+                    group.create_dataset(name=key,
+                                         shape=None,
+                                         dtype='f4')
 
     # -------------------------------------------------------------------------
 
@@ -230,36 +249,50 @@ class SampleFile:
 
         # Create a data frame for the samples containing an injection
         injection_samples = []
-        for i in range(len(self.data['injection_samples']['event_time'])):
-            _ = {k: v[i] for k, v in iteritems(self.data['injection_samples'])}
-            injection_samples.append(_)
-        df_injection_samples = pd.DataFrame().append(injection_samples,
-                                                     ignore_index=True,
-                                                     sort=False)
+        if self.data['injection_samples']['event_time'].shape != ():
+            for i in range(len(self.data['injection_samples']['event_time'])):
+                _ = {k: v[i] for k, v in
+                     iteritems(self.data['injection_samples'])}
+                injection_samples.append(_)
+            df_injection_samples = pd.DataFrame().append(injection_samples,
+                                                         ignore_index=True,
+                                                         sort=True)
+        else:
+            df_injection_samples = pd.DataFrame()
 
         # Create a data frame for the samples not containing an injection
         noise_samples = []
-        for i in range(len(self.data['noise_samples']['event_time'])):
-            _ = {k: v[i] for k, v in iteritems(self.data['noise_samples'])}
-            noise_samples.append(_)
-        df_noise_samples = pd.DataFrame().append(noise_samples,
-                                                 ignore_index=True,
-                                                 sort=False)
+        if self.data['noise_samples']['event_time'].shape != ():
+            for i in range(len(self.data['noise_samples']['event_time'])):
+                _ = {k: v[i] for k, v in
+                     iteritems(self.data['noise_samples'])}
+                noise_samples.append(_)
+            df_noise_samples = pd.DataFrame().append(noise_samples,
+                                                     ignore_index=True,
+                                                     sort=True)
+        else:
+            df_noise_samples = pd.DataFrame()
 
         # If requested, create a data frame for the injection parameters and
         # merge it with the data frame containing the injection samples
         if injection_parameters:
             injection_params = []
-            for i in range(len(df_injection_samples)):
-                _ = {k: v[i] for k, v in
-                     iteritems(self.data['injection_parameters'])}
-                injection_params.append(_)
-            df_injection_params = pd.DataFrame().append(injection_params,
-                                                        ignore_index=True,
-                                                        sort=False)
+
+            # Check if we even have any injection parameters
+            if self.data['injection_parameters']['mass1'].shape != ():
+                for i in range(len(df_injection_samples)):
+                    _ = {k: v[i] for k, v in
+                         iteritems(self.data['injection_parameters'])}
+                    injection_params.append(_)
+                df_injection_params = pd.DataFrame().append(injection_params,
+                                                            ignore_index=True,
+                                                            sort=True)
+            else:
+                df_injection_params = pd.DataFrame()
 
             df = pd.concat([df_injection_samples, df_injection_params],
-                           axis=1, sort=False)
+                           axis=1, sort=True)
+
         else:
             df = df_injection_samples
 
@@ -277,7 +310,7 @@ class SampleFile:
                     df_noise_samples[key] = value
 
         # Merge the data frames for the samples with and without injections
-        df = df.append(df_noise_samples, ignore_index=True, sort=False)
+        df = df.append(df_noise_samples, ignore_index=True, sort=True)
 
         # If requested, add the command line arguments that were used in the
         # creation of the sample file to the combined data frame
@@ -286,7 +319,10 @@ class SampleFile:
                 df[key] = value
 
         # Ensure the `event_time` variable is an integer
-        df['event_time'] = df['event_time'].astype(int)
+        try:
+            df['event_time'] = df['event_time'].astype(int)
+        except KeyError:
+            warn('\nNo key `event_time`: Data frame is probably empty!')
 
         # Either split into two data frames for injection and noise samples
         if split_injections_noise:

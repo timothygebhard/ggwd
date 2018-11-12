@@ -14,7 +14,6 @@ import json
 import time
 import sys
 import os
-import h5py
 import numpy as np
 
 from tqdm import tqdm
@@ -33,7 +32,7 @@ from generate_gw_data.HDFTools import NoiseTimeline  # noqa
 from generate_gw_data.MultiprocessingTools import ThreadsafeIter, \
     queue_worker, queue_to_list  # noqa
 from generate_gw_data.WaveformTools import WaveformParameterGenerator, \
-    generate_sample  # noqa
+    generate_sample, amend_static_arguments  # noqa
 from generate_gw_data.SampleFileTools import SampleFile  # noqa
 from generate_gw_data.TypecastingTools import typecast_static_args  # noqa
 
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     # Set up a timeline object for the background noise, that is, read in all
     # HDF files in the raw_data_directory and figure out which parts of it
     # are useable (i.e., have the right data quality and injection bits set)
-    print('Reading in raw data. This may take a while...', end=' ')
+    print('Reading in raw data. This may take several minutes...', end=' ')
     noise_timeline = \
         NoiseTimeline(background_data_directory=background_data_directory,
                       random_seed=random_seed)
@@ -162,9 +161,10 @@ if __name__ == '__main__':
     workflow_config_parser = \
         WorkflowConfigParser(configFiles=[waveform_params_file_path])
 
-    # Read in the PyCBC config file
+    # Read in the PyCBC config file and amend the static_args
     variable_arguments, static_arguments = \
         read_params_from_config(workflow_config_parser)
+    static_arguments = amend_static_arguments(static_arguments)
 
     # Ensure that static_arguments have the correct types (i.e., not str)
     static_arguments = typecast_static_args(static_arguments)
@@ -229,6 +229,11 @@ if __name__ == '__main__':
         # Print what kind of samples we are now generating
         print('Generating samples {}containing an injection...'.
               format(print_string))
+
+        # If we do not need to generate any samples, skip ahead:
+        if n_samples == 0:
+            print('Done! (n_samples=0)\n')
+            continue
 
         # Initialize a Queue and fill it with as many arguments as we
         # want to generate samples
@@ -309,7 +314,7 @@ if __name__ == '__main__':
         if injection_samples:
             value = np.array([_[key] for _ in injection_samples])
         else:
-            value = h5py.Empty
+            value = None
         injection_samples_dict[key] = value
     sample_file_dict['injection_samples'] = injection_samples_dict
 
@@ -319,7 +324,7 @@ if __name__ == '__main__':
         if noise_samples:
             value = np.array([_[key] for _ in noise_samples])
         else:
-            value = h5py.Empty
+            value = None
         noise_samples_dict[key] = value
     sample_file_dict['noise_samples'] = noise_samples_dict
 
@@ -327,10 +332,12 @@ if __name__ == '__main__':
     injection_parameters_dict = dict()
     other_names = ['h1_signal', 'h1_snr', 'l1_signal', 'l1_snr',
                    'scale_factor', 'nomf_snr']
-    if injection_parameters:
-        for key in list(variable_arguments) + other_names:
+    for key in list(variable_arguments) + other_names:
+        if injection_parameters:
             injection_parameters_dict[key] = \
                 np.array([_[key] for _ in injection_parameters])
+        else:
+            injection_parameters_dict[key] = None
     sample_file_dict['injection_parameters'] = injection_parameters_dict
 
     # Construct the path for the HDF file
