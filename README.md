@@ -14,7 +14,7 @@ The scripts in this repository are essentially just a convenience wrapper around
 
 ## 0. Motivation: Who is this for?
 
-(To be added)
+(remarks to be added)
 
 
 
@@ -31,6 +31,8 @@ pip install -r requirements.txt
 ```
 
 We would advise you to install these packages in a new, separate *virtual environment*. If you don't know how to do that, maybe check out the [tutorial on virtualenv on the Hitchhiker's Guide to Python](https://docs.python-guide.org/dev/virtualenvs/#lower-level-virtualenv.).
+
+The installation of the packages (in particular `pycbc` and `astropy`) may take a while.
 
 **Please note:** Since `pycbc` is only available for Python 2.7 (apparently due to some hard-to-migrate dependencies), all code in this repository is written only for Python 2.7 — sorry about that!
 
@@ -78,13 +80,13 @@ Some experience values for reference: Generating 32 samples *with* an injection,
 As soon as the sample generation process is complete, you can manually inspect the results to get a feel for what they look like. To this end, we have prepared the script `view_sample.py` in the `scripts` directory. You can run it as follows:
 
 ```shell
-python view_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result/plot
+python view_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result/plot.pdf
 ```
 
 If you haven't changed the configuration, you don't even need to specify the `--hdf-file-path` option; per default it will use `./output/default.hdf`. 
 
-The `--sample-id` refers to the sample you want to plot. This should be an integer between 0 and `n_injection_samples` + `n_noise_samples`, as specified in the `*.json` configuration file: 
-If you choose a value between 0 and `n_injection_samples`, you will get a sample containing an injection; if you choose one between `n_injection_samples` and `n_injection_samples` + `n_noise_samples`, you will get a sample that does not contain an injection (i.e., that is just whitened background noise).
+The `--sample-id` refers to the sample you want to plot. This should be an integer between 0 and `n_injection_samples` + `n_noise_samples` - 1, as specified in the `*.json` configuration file: 
+If you choose a value between 0 and `n_injection_samples` - 1, you will get a sample containing an injection; if you choose one between `n_injection_samples` - 1 and `n_injection_samples` + `n_noise_samples` - 1, you will get a sample that does not contain an injection (i.e., that is just whitened background noise).
 
 Finally, you should specify the location where you want to store the resulting plot using the `--save-plot` flag. Note that you can always learn more about the possible command line options by running `python view_sample.py —help`.
 
@@ -194,14 +196,6 @@ In the following, we list the the static arguments and their default values:
 
   > **Note:** According to the Nyquist-Shannon sampling theorem, a sampling rate of *N* Hz allows to reconstruct signals with a frequency of up to *N*/2 Hz (Nyquist frequency). Signals from compact binary coalescences (CBCs) are mostly expected in a range of up to a few hundred Hertz, meaning a Nyquist frequency of 1024 Hz should be sufficient for resolving them. Therefore, a value of 2048 Hz was eventually chosen for the `target_sampling_rate` of both the background noise and the waveform simulation. However, if you can computationally afford it, you might also want to experiment with higher values for the `target_sampling_rate`. 
 
-* `delta_t`: The inverse of the sampling rate. It is defined in the configuration file as it needs to be passed explicitly to the simulation routines of PyCBC.
-
-* `delta_f`: The inverse of the waveform length. It is defined in the configuration file as it needs to be passed explicitly to the simulation routines of PyCBC.
-
-* `td_length`: The product of `waveform_length` and `sampling_rate`. It is defined in the configuration file as it needs to be passed explicitly to the simulation routines of PyCBC.
-
-* `fd_length`: Calculated as half the `td_length` plus 1. It is defined in the configuration files as it needs to be passed explicitly to the simulation routines of PyCBC.
-
 * `bandpass_lower`: The cutoff-frequency for the high-pass that is applied after whitening. A value of 20 Hz was chosen. This is slightly higher than `f_lower`, which helps to suppress the non-physical turn-on effects of the simulation.
 
 * `bandpass_upper`: The cutoff-frequency for the low-pass that is applied after whitening. Per default, no low-pass is used for the sample generation. This is realized by choosing `bandpass_upper` equal to `target_sampling_rate`.
@@ -248,3 +242,64 @@ In order to find a piece of background recording into which we can inject a simu
 * The interval does not span over multiple raw HDF files, i.e., the noise time is at least `delta_t` seconds aways from the edge of the HDF file that contains it. (This restriction is only due to convenience and may be dropped if you adjust the `get_strain_from_hdf_file()` method in `/generate_gw_data/HDFTools.py` accordingly)
 
 The entire functionality for finding and sampling valid noise times is contained in the `NoiseTimeline` class defined in `/generate_gw_data/HDFTools.py`. When an instance of that class is instantiated, `_get_hdf_files()` first collects a list of all the raw LIGO recordings in the given `background_data_directory`. Then, the method `_build_timeline()` loops over these files, reads in the `dq_bits` and `inj_bits` arrays, and combines them all into one big timeline (which also explains why this takes some time). This `timeline` is then used by the `is_valid()` method to check the above conditions for a given `gps_time` and a `delta_t`. The `sample()` method then basically only generates random times between the start and the end of the `timeline` until it finds one that is accepted by `is_valid()`.
+
+### 3.2 Structure of the output HDF files
+
+You can easily get an overview of the structure of the generated HDF files by running the following command:
+
+```
+h5ls -r <output_file>.hdf
+```
+
+The output for the default configuration should look like this:
+
+```bash
+/                        					Group
+/command_line_arguments  					Group
+/injection_parameters    					Group
+	/injection_parameters/coa_phase 		Dataset {32}
+	/injection_parameters/dec 				Dataset {32}
+	/injection_parameters/h1_signal 		Dataset {32, 16384}
+	/injection_parameters/h1_snr 			Dataset {32}
+	/injection_parameters/inclination 		Dataset {32}
+	/injection_parameters/injection_snr		Dataset {32}
+	/injection_parameters/l1_signal 		Dataset {32, 16384}
+	/injection_parameters/l1_snr 			Dataset {32}
+	/injection_parameters/mass1 			Dataset {32}
+	/injection_parameters/mass2 			Dataset {32}
+	/injection_parameters/nomf_snr 			Dataset {32}
+	/injection_parameters/polarization 		Dataset {32}
+	/injection_parameters/ra 				Dataset {32}
+	/injection_parameters/scale_factor 		Dataset {32}
+	/injection_parameters/spin1z 			Dataset {32}
+	/injection_parameters/spin2z 			Dataset {32}
+/injection_samples       					Group
+	/injection_samples/event_time 			Dataset {32}
+	/injection_samples/h1_strain 			Dataset {32, 16384}
+	/injection_samples/l1_strain 			Dataset {32, 16384}
+/noise_samples           					Group
+	/noise_samples/event_time 				Dataset {16}
+	/noise_samples/h1_strain 				Dataset {16, 16384}
+	/noise_samples/l1_strain 				Dataset {16, 16384}
+/static_arguments        					Group
+```
+
+The generated output files are standard HDF files and can be read and handled as such. However, in `/generate_gw_data/SampleFileTools.py`, we also provide the `SampleFile` class as a convenience wrapper, which for example allows to easily read in a generated sample file into a `pandas` data frame.
+
+
+
+## 4. Contributing to this project
+
+If you have found any issues with our code, or would like to contribute to add further functionality, please do not hesitate to get in touch or send a pull request! :)
+
+
+
+## 5. Acknowledgements
+
+(remarks to be added)
+
+
+
+## 6. License
+
+(remarks to be added)
