@@ -2,9 +2,9 @@
 
 The purpose of this repository is to provide a starting point for generating—more of less—realistic samples of synthetic gravitational wave (GW) data which can be used, e.g., for machine learning experiments. By "samples", we mean time series data, which either does or does not contain a GW waveform. Since the latter have to be simulated, only samples with signals from gravitational waves originating from binary mergers can be created.
 
-In short (for details, see below), the main idea behind the data generating process is the following: 
+In short (for details, see below), the main idea behind the data generating process is the following:
 
-1. Randomly select a piece of real LIGO recording to serve as background noise, 
+1. Randomly select a piece of real LIGO recording to serve as background noise,
 2. Randomly select the parameters of a compact binary coalescence (CBC) from a given parameter space and simulate the corresponding waveform,
 3. Add ("inject") this simulated waveform into the background noise.
 
@@ -50,7 +50,7 @@ At the time of writing of this guide, only the data for Observation Run 1 (O1) h
 
 The download script will automatically create folders for the two detectors  `H1` and `L1` in the specified target directory, and will sort the files accordingly. Due to different downtimes for the detectors, the number of HDF files ending up in these two directories is *not* expected to be the same!
 
-Note that `download_losc_data.py` also has a `--dry` option, in case you want to check what the script *would* download without actually downloading anything yet. Furthermore, if you are actually interested in what is inside such an HDF file, you may want to take a look at the [What's in a LIGO data file?](https://www.gw-openscience.org/tutorial02/) tutorial on LOSC, which explains the internal structure of these files and how to extract data yourself. 
+Note that `download_losc_data.py` also has a `--dry` option, in case you want to check what the script *would* download without actually downloading anything yet. Furthermore, if you are actually interested in what is inside such an HDF file, you may want to take a look at the [What's in a LIGO data file?](https://www.gw-openscience.org/tutorial02/) tutorial on LOSC, which explains the internal structure of these files and how to extract data yourself.
 
 **A word of warning:** The full LIGO recordings for O1 are about ~361 GB worth of HDF files, so be sure you have enough storage! Also, depending on your internet connection, the download will probably take several hours.
 
@@ -83,9 +83,9 @@ As soon as the sample generation process is complete, you can manually inspect t
 python view_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result/plot.pdf
 ```
 
-If you haven't changed the configuration, you don't even need to specify the `--hdf-file-path` option; per default it will use `./output/default.hdf`. 
+If you haven't changed the configuration, you don't even need to specify the `--hdf-file-path` option; per default it will use `./output/default.hdf`.
 
-The `--sample-id` refers to the sample you want to plot. This should be an integer between 0 and `n_injection_samples` + `n_noise_samples` - 1, as specified in the `*.json` configuration file: 
+The `--sample-id` refers to the sample you want to plot. This should be an integer between 0 and `n_injection_samples` + `n_noise_samples` - 1, as specified in the `*.json` configuration file:
 If you choose a value between 0 and `n_injection_samples` - 1, you will get a sample containing an injection; if you choose one between `n_injection_samples` - 1 and `n_injection_samples` + `n_noise_samples` - 1, you will get a sample that does not contain an injection (i.e., that is just whitened background noise).
 
 Finally, you should specify the location where you want to store the resulting plot using the `--save-plot` flag. Note that you can always learn more about the possible command line options by running `python view_sample.py —help`.
@@ -116,9 +116,9 @@ As explained above, the `*.json` configuration files are used to control the sam
 
 * `random_seed`: The seed for the random number generator, which ensures the reproducibility of the results. For example, if you want to generate a training and a test data set for your application, it might make sense to have two `*.json` files that use different values for the `random_seed`.
 
-* `background_data_directory`: The path to the directory that contains the "raw" HDF files with the LIGO recordings. The script automatically and recursively searches the subdirectories of the given path for `*.hdf` or `*.h5` files, so if your files are sorted in `/some/path/H1` and `/some/path/L1`, it is sufficient to give `/some/path` as the `background_data_directory`. 
+* `background_data_directory`: The path to the directory that contains the "raw" HDF files with the LIGO recordings. The script automatically and recursively searches the subdirectories of the given path for `*.hdf` or `*.h5` files, so if your files are sorted in `/some/path/H1` and `/some/path/L1`, it is sufficient to give `/some/path` as the `background_data_directory`.
 
-* `dq_bits`: The _Data Quality Bits_ which you want to be set for all LIGO recordings that are selected to be used as background noise. The definitions of these DQ bits [can be found on LOSC](https://www.gw-openscience.org/archive/dataset/O1/). The bits correspond to the first column of the table there. More information about the meaning of the different categories [is also available here](https://www.gw-openscience.org/O1/). 
+* `dq_bits`: The _Data Quality Bits_ which you want to be set for all LIGO recordings that are selected to be used as background noise. The definitions of these DQ bits [can be found on LOSC](https://www.gw-openscience.org/archive/dataset/O1/). The bits correspond to the first column of the table there. More information about the meaning of the different categories [is also available here](https://www.gw-openscience.org/O1/).
 
   > **Example:** Setting `dq_bits: [0, 1, 2, 3]` in the config file means all data that is used to inject waveforms into has to at least pass all quality tests up to `CBC CAT3`. To put it simply: The more `dq_bits` you request, the better your data quality will be, but the less data will be available.
 
@@ -194,7 +194,7 @@ In the following, we list the the static arguments and their default values:
 
 * `target_sampling_rate`: The sampling rate (or frequency) of the waveforms to be generated. This has to match the sampling rate of the background noise into which the simulated waveform is later injected. When choosing this value, you are essentually trading off the resulting sample size (in terms of memory) against the resolution in time. For technical reasons, the value of `target_sampling_rate` has to be a factor (divisor) of `original_samling_rate`. The default value here is 2048 Hz, for the following reason:
 
-  > **Note:** According to the Nyquist-Shannon sampling theorem, a sampling rate of *N* Hz allows to reconstruct signals with a frequency of up to *N*/2 Hz (Nyquist frequency). Signals from compact binary coalescences (CBCs) are mostly expected in a range of up to a few hundred Hertz, meaning a Nyquist frequency of 1024 Hz should be sufficient for resolving them. Therefore, a value of 2048 Hz was eventually chosen for the `target_sampling_rate` of both the background noise and the waveform simulation. However, if you can computationally afford it, you might also want to experiment with higher values for the `target_sampling_rate`. 
+  > **Note:** According to the Nyquist-Shannon sampling theorem, a sampling rate of *N* Hz allows to reconstruct signals with a frequency of up to *N*/2 Hz (Nyquist frequency). Signals from compact binary coalescences (CBCs) are mostly expected in a range of up to a few hundred Hertz, meaning a Nyquist frequency of 1024 Hz should be sufficient for resolving them. Therefore, a value of 2048 Hz was eventually chosen for the `target_sampling_rate` of both the background noise and the waveform simulation. However, if you can computationally afford it, you might also want to experiment with higher values for the `target_sampling_rate`.
 
 * `bandpass_lower`: The cutoff-frequency for the high-pass that is applied after whitening. A value of 20 Hz was chosen. This is slightly higher than `f_lower`, which helps to suppress the non-physical turn-on effects of the simulation.
 
@@ -202,16 +202,16 @@ In the following, we list the the static arguments and their default values:
 
 * `seconds_before_event`: The number of seconds between the start of the sample and the event time (i.e., peak of the waveform signal) in `H1`. A value of 5.5 was chosen as the default. This defines the location of the coalescence within the sample.
 
-  > **Note:** If you are training a ML model that is sensitive to the absolute position of the injection in the sample, and you want to avoid overfitting, you have essentially two options: 
+  > **Note:** If you are training a ML model that is sensitive to the absolute position of the injection in the sample, and you want to avoid overfitting, you have essentially two options:
   >
   > 1. You can generate multiple sample files with different values for `seconds_before_event`, and combine the results manually into your training / test data set.
   > 2. You can turn `seconds_before_event` into a *variable argument*, and specify a probability distribution for it. This will require a few more changes in the code (in particular the `WaveformTools.py` file), but should be mostly straight-forward.
 
 * `seconds_after_event`: The number of seconds between the event time in `H1` and the end of the sample. A value of 2.5 seconds was chosen for the default. Together with `seconds_before_event`, this parameter implicitly defines the `sample_length` (which is simply their sum — in the default case, this is 8 seconds).
 
-* `tukey_alpha`: To reduce any amplitude discontinuities when injecting simulated waveforms into the background noise, there is the option to "fade-on" the amplitude of the waveform by multiplying it with a "one-sided" [Tukey window](https://en.wikipedia.org/wiki/Window_function#Tukey_window). The parameter `tukey_alpha` is passed to the `scipy.signal.tukey` function (as `alpha`; [see here fore more information](https://docs.scipy.org/doc/scipy-1.0.0/reference/generated/scipy.signal.tukey.html)) to control the shape of the Tukey window. It takes on values between 0 and 1, with a default value of 0.25. To disable this fade-on, simple set `tukey_alpha=0`. 
+* `tukey_alpha`: To reduce any amplitude discontinuities when injecting simulated waveforms into the background noise, there is the option to "fade-on" the amplitude of the waveform by multiplying it with a "one-sided" [Tukey window](https://en.wikipedia.org/wiki/Window_function#Tukey_window). The parameter `tukey_alpha` is passed to the `scipy.signal.tukey` function (as `alpha`; [see here fore more information](https://docs.scipy.org/doc/scipy-1.0.0/reference/generated/scipy.signal.tukey.html)) to control the shape of the Tukey window. It takes on values between 0 and 1, with a default value of 0.25. To disable this fade-on, simple set `tukey_alpha=0`.
 
-  > **Example:** The effect of "fading on" a waveform using this procedure is also illustrated by the following graphic (compare the start of the two waveforms): 
+  > **Example:** The effect of "fading on" a waveform using this procedure is also illustrated by the following graphic (compare the start of the two waveforms):
   >
   > ![](images/tukey_alpha.png)
 
@@ -238,7 +238,7 @@ In order to find a piece of background recording into which we can inject a simu
 * Both detectors `H1` and `L1` have data in that interval
 * The entire interval has at least the data quality specified by the `dq_bits`
 * The entire interval only contains hardware injections of the types allowed by `inj_bits`
-* The interval does not contain any *real* GW events. (For O1, this means GW150914, LVT151012, or GW151226 → their event times are hard-coded in `/generate_gw_data/Constants.py`!) 
+* The interval does not contain any *real* GW events. (For O1, this means GW150914, LVT151012, or GW151226 → their event times are hard-coded in `/generate_gw_data/Constants.py`!)
 * The interval does not span over multiple raw HDF files, i.e., the noise time is at least `delta_t` seconds aways from the edge of the HDF file that contains it. (This restriction is only due to convenience and may be dropped if you adjust the `get_strain_from_hdf_file()` method in `/generate_gw_data/HDFTools.py` accordingly)
 
 The entire functionality for finding and sampling valid noise times is contained in the `NoiseTimeline` class defined in `/generate_gw_data/HDFTools.py`. When an instance of that class is instantiated, `_get_hdf_files()` first collects a list of all the raw LIGO recordings in the given `background_data_directory`. Then, the method `_build_timeline()` loops over these files, reads in the `dq_bits` and `inj_bits` arrays, and combines them all into one big timeline (which also explains why this takes some time). This `timeline` is then used by the `is_valid()` method to check the above conditions for a given `gps_time` and a `delta_t`. The `sample()` method then basically only generates random times between the start and the end of the `timeline` until it finds one that is accepted by `is_valid()`.
@@ -254,34 +254,34 @@ h5ls -r <output_file>.hdf
 The output for the default configuration should look like this:
 
 ```bash
-/                        					Group
-/command_line_arguments  					Group
-/injection_parameters    					Group
-	/injection_parameters/coa_phase 		Dataset {32}
-	/injection_parameters/dec 				Dataset {32}
-	/injection_parameters/h1_signal 		Dataset {32, 16384}
-	/injection_parameters/h1_snr 			Dataset {32}
-	/injection_parameters/inclination 		Dataset {32}
-	/injection_parameters/injection_snr		Dataset {32}
-	/injection_parameters/l1_signal 		Dataset {32, 16384}
-	/injection_parameters/l1_snr 			Dataset {32}
-	/injection_parameters/mass1 			Dataset {32}
-	/injection_parameters/mass2 			Dataset {32}
-	/injection_parameters/nomf_snr 			Dataset {32}
-	/injection_parameters/polarization 		Dataset {32}
-	/injection_parameters/ra 				Dataset {32}
-	/injection_parameters/scale_factor 		Dataset {32}
-	/injection_parameters/spin1z 			Dataset {32}
-	/injection_parameters/spin2z 			Dataset {32}
-/injection_samples       					Group
-	/injection_samples/event_time 			Dataset {32}
-	/injection_samples/h1_strain 			Dataset {32, 16384}
-	/injection_samples/l1_strain 			Dataset {32, 16384}
-/noise_samples           					Group
-	/noise_samples/event_time 				Dataset {16}
-	/noise_samples/h1_strain 				Dataset {16, 16384}
-	/noise_samples/l1_strain 				Dataset {16, 16384}
-/static_arguments        					Group
+/                                        Group
+/command_line_arguments                  Group
+/injection_parameters                    Group
+    /injection_parameters/coa_phase      Dataset {32}
+    /injection_parameters/dec            Dataset {32}
+    /injection_parameters/h1_signal      Dataset {32, 16384}
+    /injection_parameters/h1_snr         Dataset {32}
+    /injection_parameters/inclination    Dataset {32}
+    /injection_parameters/injection_snr  Dataset {32}
+    /injection_parameters/l1_signal      Dataset {32, 16384}
+    /injection_parameters/l1_snr         Dataset {32}
+    /injection_parameters/mass1          Dataset {32}
+    /injection_parameters/mass2          Dataset {32}
+    /injection_parameters/nomf_snr       Dataset {32}
+    /injection_parameters/polarization   Dataset {32}
+    /injection_parameters/ra             Dataset {32}
+    /injection_parameters/scale_factor   Dataset {32}
+    /injection_parameters/spin1z         Dataset {32}
+    /injection_parameters/spin2z         Dataset {32}
+/injection_samples                       Group
+    /injection_samples/event_time        Dataset {32}
+    /injection_samples/h1_strain         Dataset {32, 16384}
+    /injection_samples/l1_strain         Dataset {32, 16384}
+/noise_samples                           Group
+    /noise_samples/event_time            Dataset {16}
+    /noise_samples/h1_strain             Dataset {16, 16384}
+    /noise_samples/l1_strain             Dataset {16, 16384}
+/static_arguments                        Group
 ```
 
 The generated output files are standard HDF files and can be read and handled as such. However, in `/generate_gw_data/SampleFileTools.py`, we also provide the `SampleFile` class as a convenience wrapper, which for example allows to easily read in a generated sample file into a `pandas` data frame.
