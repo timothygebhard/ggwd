@@ -451,10 +451,17 @@ def generate_sample(static_arguments,
 
     for det in ('H1', 'L1'):
 
+        # Get the whitening parameters
+        segment_duration = static_arguments['whitening_segment_duration']
+        max_filter_duration = static_arguments['whitening_max_filter_duration']
+
         # Whiten the strain (using the built-in whitening of PyCBC)
         # We don't need to remove the corrupted samples here, because we
         # crop the strain later on
-        strain[det] = strain[det].whiten(4, 4, remove_corrupted=False)
+        strain[det] = \
+            strain[det].whiten(segment_duration=segment_duration,
+                               max_filter_duration=max_filter_duration,
+                               remove_corrupted=False)
 
         # Get the limits for the bandpass
         bandpass_lower = static_arguments['bandpass_lower']

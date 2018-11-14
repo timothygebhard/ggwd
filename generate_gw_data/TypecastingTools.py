@@ -39,6 +39,10 @@ def typecast_static_args(static_args):
     args['waveform_length'] = int(args['waveform_length'])
     args['original_sampling_rate'] = int(args['original_sampling_rate'])
     args['target_sampling_rate'] = int(args['target_sampling_rate'])
+    args['whitening_segment_duration'] = \
+        float(args['whitening_segment_duration'])
+    args['whitening_max_filter_duration'] = \
+        int(args['whitening_max_filter_duration'])
 
     # Cast variables to float that need to be floats
     args['delta_f'] = float(args['delta_f'])
