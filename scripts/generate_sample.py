@@ -97,15 +97,18 @@ if __name__ == '__main__':
         assert key in config.keys(), \
             'Missing key: {}'.format(key)
     print('Done!')
+    print()
 
     # -------------------------------------------------------------------------
     # Ensure the waveform parameters file exists
     # -------------------------------------------------------------------------
 
-    # Construct the path to the waveform params file and check it exists
+    # Construct the path to the waveform params file
     waveform_params_file_name = config['waveform_params_file_name']
     waveform_params_file_path = \
         os.path.join('..', 'config_files', waveform_params_file_name)
+
+    # Ensure it exists
     assert os.path.exists(waveform_params_file_path), \
         'Specified waveform parameter file does not exist!'
 
@@ -120,23 +123,41 @@ if __name__ == '__main__':
     # Set the random seed for this script
     np.random.seed(config['random_seed'])
 
-    # Set up a timeline object for the background noise, that is, read in all
-    # HDF files in the raw_data_directory and figure out which parts of it
-    # are useable (i.e., have the right data quality and injection bits set)
-    print('Reading in raw data. This may take several minutes...', end=' ')
-    noise_timeline = \
-        NoiseTimeline(background_data_directory=background_data_directory,
-                      random_seed=random_seed)
+    # If the 'background_data_directory' is None, we will use synthetic noise.
+    # In this case, there are no noise times (always return None).
+    if background_data_directory is None:
 
-    # Create a noise time generator so that can sample valid noise times
-    # simply by calling next(noise_time_generator)
-    noise_times = \
-        ThreadsafeIter((noise_timeline.sample(delta_t=config['delta_t'],
-                                              dq_bits=config['dq_bits'],
-                                              inj_bits=config['inj_bits'],
-                                              return_paths=True)
-                        for _ in iter(int, 1)))
-    print('Done!')
+        print('background_data_directory is None -> Using synthetic noise!')
+
+        # Create a ThreadsafeIter that returns a fixed fake "event time".
+        # This is necessary, because otherwise we run into all sorts of issues
+        # with PyCBC TimeSeries objects. However, for the HDF file path that
+        # contains that time, we return None, so that we now that we need to
+        # generate synthetic noise.
+        noise_times = ThreadsafeIter((1234567890, None) for _ in iter(int, 1))
+
+    # Otherwise, we set up a timeline object for the background noise, that
+    # is, we read in all HDF files in the raw_data_directory and figure out
+    # which parts of it are useable (i.e., have the right data quality and
+    # injection bits set as specified in the config file).
+    else:
+
+        print('Reading in raw data. This may take several minutes...', end=' ')
+
+        # Create a timeline object by running over all HDF files once
+        noise_timeline = \
+            NoiseTimeline(background_data_directory=background_data_directory,
+                          random_seed=random_seed)
+
+        # Create a noise time generator so that can sample valid noise times
+        # simply by calling next(noise_time_generator)
+        noise_times = \
+            ThreadsafeIter((noise_timeline.sample(delta_t=config['delta_t'],
+                                                  dq_bits=config['dq_bits'],
+                                                  inj_bits=config['inj_bits'],
+                                                  return_paths=True)
+                            for _ in iter(int, 1)))
+        print('Done!')
 
     # -------------------------------------------------------------------------
     # Construct a generator for sampling waveform parameters
