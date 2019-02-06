@@ -1,6 +1,6 @@
 {
   "random_seed": 42,
-  "background_data_directory": "/is/cluster/shared/ei/ligo_01/",
+  "background_data_directory": null,
   "dq_bits": [0, 1, 2, 3],
   "inj_bits": [0, 1, 2, 4],
   "delta_t": 256,
