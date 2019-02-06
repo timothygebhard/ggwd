@@ -14,7 +14,7 @@ import numpy as np
 from scipy import signal
 from copy import deepcopy
 
-
+from lal import LIGOTimeGPS
 from pycbc.distributions import JointDistribution, read_params_from_config, \
     read_constraints_from_config, read_distributions_from_config
 from pycbc.transforms import read_transforms_from_config, apply_transforms
@@ -22,6 +22,8 @@ from pycbc.workflow import WorkflowConfigParser
 from pycbc.waveform import get_td_waveform, get_fd_waveform
 from pycbc.detector import Detector
 from pycbc.psd import interpolate
+from pycbc.psd.analytical import aLIGOZeroDetHighPower
+from pycbc.noise import noise_from_psd
 from pycbc.filter import sigma
 from pycbc.types.timeseries import TimeSeries
 
@@ -323,6 +325,17 @@ def generate_sample(static_arguments,
                     event_tuple,
                     delta_t,
                     waveform_params=None):
+    """
+
+    Args:
+        static_arguments:
+        event_tuple:
+        delta_t:
+        waveform_params:
+
+    Returns:
+
+    """
 
     # -------------------------------------------------------------------------
     # Define shortcuts for some elements of self.static_arguments
@@ -333,6 +346,7 @@ def generate_sample(static_arguments,
     target_sampling_rate = static_arguments['target_sampling_rate']
     f_lower = static_arguments['f_lower']
     delta_f = static_arguments['delta_f']
+    fd_length = static_arguments['fd_length']
 
     # Get how many seconds before and after the event time to use
     seconds_before_event = static_arguments['seconds_before_event']
@@ -342,16 +356,57 @@ def generate_sample(static_arguments,
     event_time, hdf_file_paths = event_tuple
 
     # -------------------------------------------------------------------------
-    # Select the background noise for the sample as a PyCBC TimeSeries object
+    # Get the background noise (either from data or synthetically)
     # -------------------------------------------------------------------------
 
-    noise = \
-        get_strain_from_hdf_file(hdf_file_paths=hdf_file_paths,
-                                 gps_time=event_time,
-                                 delta_t=delta_t,
-                                 original_sampling_rate=original_sampling_rate,
-                                 target_sampling_rate=target_sampling_rate,
-                                 as_pycbc_timeseries=True)
+    # A NOTE OF CAUTION!
+    #
+    # Please not that 'delta_t' unfortunately has a double meaning here:
+    #
+    # 1. The delta_t that is passed to this function, i.e. generate_sample(),
+    #    refers to the length of the piece of noise:
+    #    In case we are sampling real noise, we select the interval
+    #    [event_time - delta_t, event_time + delta_t] from the HDF files.
+    #    In the case of synthetic noise, we simply generate random noise of
+    #    length 2 * delta_t (in seconds).
+    # 2. The delta_t that is expected by noise_from_pdf() is simply the
+    #    inverse of the target sampling rate, i.e. the time difference between
+    #    two consecutive samples!
+
+    # If the event_time is None, we generate synthetic noise
+    if hdf_file_paths is None:
+
+        # Create an artificial PSD for the noise
+        # TODO: Is this the best choice for this task?
+        psd = aLIGOZeroDetHighPower(length=fd_length,
+                                    delta_f=delta_f,
+                                    low_freq_cutoff=f_lower)
+
+        # Actually generate the noise using the PSD and LALSimulation
+        noise = dict()
+        for det in ('H1', 'L1'):
+
+            # Generate the noise for this detector
+            noise[det] = \
+                noise_from_psd(length=(2 * delta_t * target_sampling_rate),
+                               delta_t=(1.0 / target_sampling_rate),
+                               psd=psd,
+                               seed=None)
+
+            # Manually fix the noise start time to match the fake event time
+            # that we are using
+            noise[det]._epoch = LIGOTimeGPS(1234567890 - delta_t)
+
+    # Otherwise we select the noise from the corresponding HDF file
+    else:
+
+        kwargs = dict(hdf_file_paths=hdf_file_paths,
+                      gps_time=event_time,
+                      delta_t=delta_t,
+                      original_sampling_rate=original_sampling_rate,
+                      target_sampling_rate=target_sampling_rate,
+                      as_pycbc_timeseries=True)
+        noise = get_strain_from_hdf_file(**kwargs)
 
     # -------------------------------------------------------------------------
     # If applicable, make an injection
