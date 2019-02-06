@@ -127,7 +127,7 @@ if __name__ == '__main__':
     # In this case, there are no noise times (always return None).
     if background_data_directory is None:
 
-        print('background_data_directory is None -> Using synthetic noise!')
+        print('Using synthetic noise! (background_data_directory = None)')
 
         # Create a ThreadsafeIter that returns a fixed fake "event time".
         # This is necessary, because otherwise we run into all sorts of issues
@@ -142,6 +142,8 @@ if __name__ == '__main__':
     # injection bits set as specified in the config file).
     else:
 
+        print('Using real noise from recordings! (background_data_directory = '
+              '{})'.format(background_data_directory))
         print('Reading in raw data. This may take several minutes...', end=' ')
 
         # Create a timeline object by running over all HDF files once
