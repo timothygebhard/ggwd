@@ -36,21 +36,23 @@ The installation of the packages (in particular `pycbc` and `astropy`) may take 
 
 **Please note:** Since `pycbc` is only available for Python 2.7 (apparently due to some hard-to-migrate dependencies), all code in this repository is written only for Python 2.7 — sorry about that!
 
-### 1.2 Downloading the LIGO recordings
+### 1.2 Downloading the LIGO recordings (optional)
 
-As a next step, you will need to download the LIGO recordings, which will be used for the background noise from the [LIGO Open Science Center (LOSC)](https://www.gw-openscience.org/archive/O1/). We recommend you to download the data at a sampling frequency of 4096 Hz. As the file format, choose HDF5. LOSC also has [a tutorial on downloading data](https://www.gw-openscience.org/tutorial01/), which is a bit out of date, but may be still of use.
+_**Note:** This step is optional: If you only want to work with simulated LIGO noise, you can skip this step._
 
-To help you get started with the batch download, the `scripts` directory contains a script `download_losc_data.py`, which you can use as follows:
+As a next step, you will need to download the LIGO recordings, which will be used for the background noise from the [Gravitational Wave Open Science Center (GWOSC)](https://www.gw-openscience.org/archive/O1/), formerly known as LOSC. We recommend you to download the data at a sampling frequency of 4096 Hz. As the file format, choose HDF5. GWOSC also has [a tutorial on downloading data](https://www.gw-openscience.org/tutorial01/), which is a bit out of date, but may be still of use.
+
+To help you get started with the batch download, the `scripts` directory contains a script `download_gwosc_data.py`, which you can use as follows:
 
 ```shell
-python download_losc_data.py --destination=/path/to/download/folder
+python download_gwosc_data.py --destination=/path/to/download/folder
 ```
 
 At the time of writing of this guide, only the data for Observation Run 1 (O1) has been released to the public. Some of the default values of the download script (e.g., the start and end time stamps) are also based on O1. However, unless the file format is changed significantly for future releases, most of this code should be reusable for O2 with only minor edits.
 
 The download script will automatically create folders for the two detectors  `H1` and `L1` in the specified target directory, and will sort the files accordingly. Due to different downtimes for the detectors, the number of HDF files ending up in these two directories is *not* expected to be the same!
 
-Note that `download_losc_data.py` also has a `--dry` option, in case you want to check what the script *would* download without actually downloading anything yet. Furthermore, if you are actually interested in what is inside such an HDF file, you may want to take a look at the [What's in a LIGO data file?](https://www.gw-openscience.org/tutorial02/) tutorial on LOSC, which explains the internal structure of these files and how to extract data yourself.
+Note that `download_gwosc_data.py` also has a `--dry` option, in case you want to check what the script *would* download without actually downloading anything yet. Furthermore, if you are actually interested in what is inside such an HDF file, you may want to take a look at the [What's in a LIGO data file?](https://www.gw-openscience.org/tutorial02/) tutorial on GWOSC, which explains the internal structure of these files and how to extract data yourself.
 
 **A word of warning:** The full LIGO recordings for O1 are about ~361 GB worth of HDF files, so be sure you have enough storage! Also, depending on your internet connection, the download will probably take several hours.
 
@@ -61,7 +63,8 @@ Once you have set up the Python environment and downloaded the raw LIGO files, y
 To this end, check out the `config_files` directory. In there, you will find two different types of configuration files (see below for a more detailed explanation of the parameters you can configure here!):
 
 * `*.json` files: These files steer the sample generation process itself. Here, you can control how many data samples you want to create, how many cores to use for it, which background data to use, et cetera.
-  To get started, all you need to do is open the `default.json` file and adjust the `background_data_directory` path to the location to which you downloaded the HDF files in step 1.2.
+  To get started, all you need to do is open the `default.json` file and adjust the `background_data_directory` path to the location to which you downloaded the HDF files in step 1.2. 
+  In case you want to work with simulated data, use `null` for the `background_data_directory`.
 * `*.ini` files: These files mainly control the process of simulating GW waveforms with PyCBC. Here, you can choose the *waveform approximant* (i.e., the model used for the simulation) or define the parameter space for the mergers (e.g., the masses of the colliding black holes / neutron stars). However, this is also the place where you control the length (in seconds) of the samples that you are generating.
   If you don't (yet) know what all these things mean, you can simply leave the `waveform_params.ini` file untouched for now.
 
@@ -117,12 +120,13 @@ As explained above, the `*.json` configuration files are used to control the sam
 * `random_seed`: The seed for the random number generator, which ensures the reproducibility of the results. For example, if you want to generate a training and a test data set for your application, it might make sense to have two `*.json` files that use different values for the `random_seed`.
 
 * `background_data_directory`: The path to the directory that contains the "raw" HDF files with the LIGO recordings. The script automatically and recursively searches the subdirectories of the given path for `*.hdf` or `*.h5` files, so if your files are sorted in `/some/path/H1` and `/some/path/L1`, it is sufficient to give `/some/path` as the `background_data_directory`.
+  In case you only want to work with simulated LIGO noise, you can also use `null` as a value here. This is also the default setting to ensure the scripts run "out of the box".
 
-* `dq_bits`: The _Data Quality Bits_ which you want to be set for all LIGO recordings that are selected to be used as background noise. The definitions of these DQ bits [can be found on LOSC](https://www.gw-openscience.org/archive/dataset/O1/). The bits correspond to the first column of the table there. More information about the meaning of the different categories [is also available here](https://www.gw-openscience.org/O1/).
+* `dq_bits`: The _Data Quality Bits_ which you want to be set for all LIGO recordings that are selected to be used as background noise. The definitions of these DQ bits [can be found on GWOSC](https://www.gw-openscience.org/archive/dataset/O1/). The bits correspond to the first column of the table there. More information about the meaning of the different categories [is also available here](https://www.gw-openscience.org/O1/).
 
   > **Example:** Setting `dq_bits: [0, 1, 2, 3]` in the config file means all data that is used to inject waveforms into has to at least pass all quality tests up to `CBC CAT3`. To put it simply: The more `dq_bits` you request, the better your data quality will be, but the less data will be available.
 
-* `inj_bits`: The *Injection Bits* which you want to be set for the data that can be used to inject waveforms into. The meaning of these bits is given in this [table on LOSC](https://www.gw-openscience.org/archive/dataset/O1/). More information about *Hardware Injections* can be found [on this website](https://www.gw-openscience.org/o1_inj/).
+* `inj_bits`: The *Injection Bits* which you want to be set for the data that can be used to inject waveforms into. The meaning of these bits is given in this [table on GWOSC](https://www.gw-openscience.org/archive/dataset/O1/). More information about *Hardware Injections* can be found [on this website](https://www.gw-openscience.org/o1_inj/).
 
   > **Example:** Setting `inj_bits: [0, 1, 2, 4]` in the config file means that the only type of hardware injection that is permitted in the data used for generating samples are *continuous wave injections*.
 
@@ -130,9 +134,15 @@ As explained above, the `*.json` configuration files are used to control the sam
   Because the latter corrupts the edges of the sample, `delta_t` should be chosen sufficiently large so that these artifacts can be cropped. As a (somewhat conservative) guideline, choose `delta_t` at least twice as big as your desired sample length: `delta_t` ≥ 2 * `sample_length`.
 
 * `waveform_params_file_name`: The name of the `*.ini` file to be used to this sample generation process.
+
 * `n_injection_samples`: The number of samples containing an injection to be generated.
+
 * `n_noise_samples`: The number of samples *not* containing an injection to be generated (i.e., samples that consists purely of whitened background noise). If you only want to generate samples with waveform signals in them, simply set this value to 0.
+
+  > **Note:** The data generation script internally uses a `JoinableQueue` from Python's `multiprocessing` module to parallelize and thus speed up the data generation. The implementation of the multiprocessing module is not consistent for all operating systems. For example, on macOS, the size of a `JoinableQueue` is limited to *2^15 - 1 = 32767* elements. This means that if you are trying to run the data generation on macOS with `n_injection_samples` + `n_noise_samples` ≥ 32768, you will probably cause an `OSError: [Errno 22] Invalid argument`. On Linux, there seems to exist no such upper limit for the size of a queue.
+
 * `n_processes`: The number of (parallel) processes to be used for the sample generation process.
+
 * `output_file_name`: The name that will be given to the final HDF file that contains all generated samples (with and without injections). The file ending (`*.hdf` or `*.h5`) should be included here.
 
 ### 2.2 INI files
@@ -190,7 +200,7 @@ In the following, we list the the static arguments and their default values:
 
 * `waveform_length`: Not to be confused with the  `sample_length`, this parameter specifies the length (in seconds) up to which waveforms are simulated, or—if the simulation result is shorter—are resized by padding them with zeros. The default value of this parameter was set to 128 seconds.
 
-* `original_sampling_rate`: The sampling rate of the LIGO recordings that you downloaded from LOSC (in Hertz). If you followed our recommendation, this value should be 4096.
+* `original_sampling_rate`: The sampling rate of the LIGO recordings that you downloaded from GWOSC (in Hertz). If you followed our recommendation, this value should be 4096.
 
 * `target_sampling_rate`: The sampling rate (or frequency) of the waveforms to be generated. This has to match the sampling rate of the background noise into which the simulated waveform is later injected. When choosing this value, you are essentually trading off the resulting sample size (in terms of memory) against the resolution in time. For technical reasons, the value of `target_sampling_rate` has to be a factor (divisor) of `original_samling_rate`. The default value here is 2048 Hz, for the following reason:
 
