@@ -1,5 +1,5 @@
 """
-This script simplifies downloading raw LIGO data from LOSC.
+This script simplifies downloading raw LIGO data from GWOSC.
 """
 
 # -----------------------------------------------------------------------------
@@ -34,31 +34,38 @@ if __name__ == '__main__':
     # -------------------------------------------------------------------------
 
     # Set up the parser
-    parser = argparse.ArgumentParser(description='Download Raw LOSC Data.')
+    parser = argparse.ArgumentParser(description='Download Raw GWOSC Data.')
 
     # Add arguments (and set default values for some variables)
     parser.add_argument('--observation-run',
-                        help='Observation run for which to download data.',
+                        help='Observation run for which to download data '
+                             '(default: O1).',
                         default='O1')
     parser.add_argument('--gps-start-time',
-                        help='Start time (GPS) of data to download.',
+                        help='Start time (GPS) of data to download '
+                             '(default: 1126051217).',
                         default='1126051217')
     parser.add_argument('--gps-end-time',
-                        help='End time (GPS) of data to download.',
+                        help='End time (GPS) of data to download '
+                             '(default: 1137254417).',
                         default='1137254417')
     parser.add_argument('--detector',
-                        help='Detector to download data for.',
+                        help='Detector to download data for '
+                             '(default: both).',
                         choices=['H1', 'L1', 'both'],
                         default='both')
     parser.add_argument('--destination',
-                        help='Target directory for the download.',
+                        help='Target directory for the download '
+                             '(default: .).',
                         default='.')
     parser.add_argument('--threshold',
                         help='Minimum percentage of the file that has valid '
-                             'data (also known as duty_cycle).',
+                             'data (also known as duty_cycle) '
+                             '(default: 0).',
                         default=0)
     parser.add_argument('--dry',
-                        help='Do not download; just list files.',
+                        help='Do not download; just list files '
+                             '(default: False).',
                         action='store_true',
                         default=False)
 
@@ -83,7 +90,8 @@ if __name__ == '__main__':
 
     script_start_time = time.time()
     print('')
-    print('DOWNLOAD RAW HDF FILES FROM LIGO OPEN SCIENCE CENTER (LOSC)')
+    print('DOWNLOAD RAW HDF FILES FROM GRAVITATIONAL WAVE OPEN SCIENCE CENTER '
+          '(GWOSC)')
     print('')
 
     if dry:
@@ -107,7 +115,8 @@ if __name__ == '__main__':
             os.mkdir(directory)
 
         # Construct the URL to the JSON file containing the links to all files
-        urlformat = 'https://losc.ligo.org/archive/links/{0}/{1}/{2}/{3}/json/'
+        urlformat = 'https://gw-openscience.org/archive/links/' \
+            '{0}/{1}/{2}/{3}/json/'
         url = urlformat.format(observation_run, detector, gps_start_time,
                                gps_end_time)
 
