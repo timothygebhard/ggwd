@@ -394,7 +394,9 @@ def generate_sample(static_arguments,
                                seed=None)
 
             # Manually fix the noise start time to match the fake event time
-            # that we are using
+            # that we are using. For some reason, the correct setter method
+            # for this property does not work?!
+            # noinspection PyProtectedMember
             noise[det]._epoch = LIGOTimeGPS(1234567890 - delta_t)
 
     # Otherwise we select the noise from the corresponding HDF file
