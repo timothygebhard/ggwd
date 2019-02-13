@@ -4,7 +4,7 @@ lalsuite==6.49
 matplotlib
 numpy
 pandas
-PyCBC==1.12.3
+PyCBC==1.13.3
 requests
 scipy
 six
