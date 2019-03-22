@@ -16,6 +16,7 @@ import sys
 import os
 import numpy as np
 
+from itertools import count
 from tqdm import tqdm
 from multiprocessing import Process, JoinableQueue
 
@@ -29,8 +30,7 @@ sys.path.insert(0, os.path.realpath('..'))
 
 # Now we can even import from generate_gw_data without PyCharm complaining!
 from generate_gw_data.HDFTools import NoiseTimeline  # noqa
-from generate_gw_data.MultiprocessingTools import ThreadsafeIter, \
-    queue_worker, queue_to_list  # noqa
+from generate_gw_data.MultiprocessingTools import queue_worker  # noqa
 from generate_gw_data.WaveformTools import WaveformParameterGenerator, \
     generate_sample, amend_static_arguments  # noqa
 from generate_gw_data.SampleFileTools import SampleFile  # noqa
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
 
     # Start the stopwatch
-    script_start_time = time.time()
+    script_start = time.time()
     print('')
     print('GENERATE A GW DATA SAMPLE FILE')
     print('')
@@ -81,8 +81,8 @@ if __name__ == '__main__':
     # Build the full path to the config file and make sure it exists
     config_file_name = command_line_arguments['config_file']
     config_file_path = os.path.join('..', 'config_files', config_file_name)
-    assert os.path.exists(config_file_path), \
-        'Specified configuration file does not exist!'
+    if not os.path.exists(config_file_path):
+        raise IOError('Specified configuration file does not exist!')
 
     # Read the configuration into a dict
     print('Reading and validating in configuration file...', end=' ')
@@ -94,10 +94,21 @@ if __name__ == '__main__':
                 'waveform_params_file_name', 'n_injection_samples',
                 'n_noise_samples', 'n_processes', 'random_seed',
                 'output_file_name'):
-        assert key in config.keys(), \
-            'Missing key: {}'.format(key)
+        if key not in config.keys():
+            raise KeyError('Missing key in configuration file: {}'.format(key))
     print('Done!')
     print()
+
+    # -------------------------------------------------------------------------
+    # Shortcuts and random seed
+    # -------------------------------------------------------------------------
+
+    # Define some useful shortcuts
+    random_seed = config['random_seed']
+    background_data_directory = config['background_data_directory']
+
+    # Set the random seed for this script
+    np.random.seed(config['random_seed'])
 
     # -------------------------------------------------------------------------
     # Ensure the waveform parameters file exists
@@ -109,32 +120,25 @@ if __name__ == '__main__':
         os.path.join('..', 'config_files', waveform_params_file_name)
 
     # Ensure it exists
-    assert os.path.exists(waveform_params_file_path), \
-        'Specified waveform parameter file does not exist!'
+    if not os.path.exists(waveform_params_file_path):
+        raise IOError('Specified waveform parameter file does not exist!')
 
     # -------------------------------------------------------------------------
     # Construct a generator for sampling valid noise times
     # -------------------------------------------------------------------------
 
-    # Define some shortcuts
-    random_seed = config['random_seed']
-    background_data_directory = config['background_data_directory']
-
-    # Set the random seed for this script
-    np.random.seed(config['random_seed'])
-
     # If the 'background_data_directory' is None, we will use synthetic noise.
     # In this case, there are no noise times (always return None).
-    if background_data_directory is None:
+    if config['background_data_directory'] is None:
 
-        print('Using synthetic noise! (background_data_directory = None)')
+        print('Using synthetic noise! (background_data_directory = None)\n')
 
-        # Create a ThreadsafeIter that returns a fixed fake "event time".
-        # This is necessary, because otherwise we run into all sorts of issues
-        # with PyCBC TimeSeries objects. However, for the HDF file path that
-        # contains that time, we return None, so that we now that we need to
-        # generate synthetic noise.
-        noise_times = ThreadsafeIter((1234567890, None) for _ in iter(int, 1))
+        # Create a iterator that returns a fake "event time", which we will
+        # use as a seed for the RNG to ensure the reproducibility of the
+        # generated synthetic noise.
+        # For the HDF file path that contains that time, we always return
+        # None, so that we know that we need to generate synthetic noise.
+        noise_times = ((1000000000 + _, None) for _ in count())
 
     # Otherwise, we set up a timeline object for the background noise, that
     # is, we read in all HDF files in the raw_data_directory and figure out
@@ -153,13 +157,12 @@ if __name__ == '__main__':
 
         # Create a noise time generator so that can sample valid noise times
         # simply by calling next(noise_time_generator)
-        noise_times = \
-            ThreadsafeIter((noise_timeline.sample(delta_t=config['delta_t'],
-                                                  dq_bits=config['dq_bits'],
-                                                  inj_bits=config['inj_bits'],
-                                                  return_paths=True)
-                            for _ in iter(int, 1)))
-        print('Done!')
+        noise_times = (noise_timeline.sample(delta_t=config['delta_t'],
+                                             dq_bits=config['dq_bits'],
+                                             inj_bits=config['inj_bits'],
+                                             return_paths=True)
+                       for _ in iter(int, 1))
+        print('Done!\n')
 
     # -------------------------------------------------------------------------
     # Construct a generator for sampling waveform parameters
@@ -171,10 +174,10 @@ if __name__ == '__main__':
         WaveformParameterGenerator(config_file=[waveform_params_file_path],
                                    random_seed=random_seed)
 
-    # Wrap it in a thread-safe generator expression so that we can we can
-    # simply sample from it by calling next(waveform_parameters)
-    waveform_parameters = ThreadsafeIter((waveform_parameter_generator.draw()
-                                          for _ in iter(int, 1)))
+    # Wrap it in a generator expression so that we can we can  simply sample
+    # from it by calling next(waveform_parameters)
+    waveform_parameters = \
+        (waveform_parameter_generator.draw() for _ in iter(int, 1))
 
     # -------------------------------------------------------------------------
     # Read in static_args and variable_args defined in the config file
@@ -193,34 +196,19 @@ if __name__ == '__main__':
     static_arguments = typecast_static_args(static_arguments)
 
     # -------------------------------------------------------------------------
-    # Set up an argument generator for samples with/without injections
+    # Define a function to generate arguments for the simulation
     # -------------------------------------------------------------------------
 
-    # Set up a function that generates the arguments for generate_sample():
-    # We need the static_arguments, a (random) event time, and some (random)
-    # waveform parameters for the simulation
-    def generate_arguments(make_injection=True):
+    def generate_arguments(injection=True):
 
-        # Depending on whether we want to make an injection or not,
-        # we either sample a set of parameters or not
-        if make_injection:
-            waveform_params = next(waveform_parameters)
-        else:
-            waveform_params = None
+        # Only sample waveform parameters if we are making an injection
+        waveform_params = next(waveform_parameters) if injection else None
 
-        # Return the dict of arguments
+        # Return all necessary arguments as a dictionary
         return dict(static_arguments=static_arguments,
                     event_tuple=next(noise_times),
                     delta_t=config['delta_t'],
                     waveform_params=waveform_params)
-
-    # Create thread-safe generator expressions for the arguments_generator()
-    arguments_generator_injections = \
-        ThreadsafeIter((generate_arguments(make_injection=True)
-                        for _ in iter(int, 1)))
-    arguments_generator_noise = \
-        ThreadsafeIter((generate_arguments(make_injection=False)
-                        for _ in iter(int, 1)))
 
     # -------------------------------------------------------------------------
     # Finally: Create our samples!
@@ -234,24 +222,19 @@ if __name__ == '__main__':
     # The procedure for generating samples with and without injections is
     # mostly the same; the only real difference is which arguments_generator
     # we have have to use:
-    for loop_dict in [dict(make_injection=True,
-                           n_samples=config['n_injection_samples'],
-                           arguments_generator=arguments_generator_injections,
-                           print_string=''),
-                      dict(make_injection=False,
-                           n_samples=config['n_noise_samples'],
-                           arguments_generator=arguments_generator_noise,
-                           print_string='*not* ')]:
-
-        # Unpack the loop dict
-        make_injection = loop_dict['make_injection']
-        n_samples = loop_dict['n_samples']
-        arguments_generator = loop_dict['arguments_generator']
-        print_string = loop_dict['print_string']
-
-        # Print what kind of samples we are now generating
-        print('Generating samples {}containing an injection...'.
-              format(print_string))
+    for sample_type in ('injections', 'noise'):
+        
+        # Define some sample_type-specific shortcuts
+        if sample_type == 'injections':
+            print('Generating samples containing an injection...')
+            n_samples = config['n_injection_samples']
+            arguments_generator = \
+                (generate_arguments(injection=True) for _ in iter(int, 1))
+        else:
+            print('Generating samples *not* containing an injection...')
+            n_samples = config['n_noise_samples']
+            arguments_generator = \
+                (generate_arguments(injection=False) for _ in iter(int, 1))
 
         # If we do not need to generate any samples, skip ahead:
         if n_samples == 0:
@@ -261,46 +244,92 @@ if __name__ == '__main__':
         # Initialize a Queue and fill it with as many arguments as we
         # want to generate samples
         arguments_queue = JoinableQueue()
-        for item in range(n_samples):
+        for i in range(n_samples):
             arguments_queue.put(next(arguments_generator))
 
-        # Initialize a Queue to store the results of the sample generation
+        # Initialize a Queue and a list to store the generated samples
         results_queue = JoinableQueue()
+        results_list = []
 
-        # Set up parameters for progressbar
+        # Use a tqdm context manager for the progress bar
         tqdm_args = dict(total=n_samples, ncols=80, unit='sample')
-
         with tqdm(**tqdm_args) as progressbar:
 
-            # Start n_processes new processes to process the arguments_queue
-            for i in range(config['n_processes']):
+            # Keep track of all running processes
+            list_of_processes = []
 
-                # Collect the keyword arguments that need to be passed to the
-                # queue_worker() function
-                kwargs = dict(arguments_queue=arguments_queue,
-                              results_queue=results_queue,
-                              arguments_generator=arguments_generator,
-                              generate_sample=generate_sample,
-                              progressbar=progressbar)
+            # While we haven't produced as many results as desired, keep going
+            while len(results_list) < n_samples:
+    
+                # -------------------------------------------------------------
+                # Loop over processes to see if anything got stuck
+                # -------------------------------------------------------------
+                
+                for process_dict in list_of_processes:
+        
+                    # Get start time and process object
+                    start_time = process_dict['start_time']
+                    process = process_dict['process']
+        
+                    # If the process is still running, but should have
+                    # terminated already (use default limit of 60 seconds):
+                    if process.is_alive() and (time.time() - start_time > 60):
+            
+                        # Kill process that's been running too long
+                        process.terminate()
+                        process.join()
+                        list_of_processes.remove(process_dict)
+            
+                        # Add new arguments to queue
+                        new_arguments = next(arguments_generator)
+                        arguments_queue.put(new_arguments)
+        
+                    # If process has terminated already
+                    elif not process.is_alive():
+            
+                        # If the process failed, add new arguments to queue
+                        if process.exitcode != 0:
+                            new_arguments = next(arguments_generator)
+                            arguments_queue.put(new_arguments)
+            
+                        # Remove process from the list of running processes
+                        list_of_processes.remove(process_dict)
+    
+                # Start new processes until the arguments_queue is empty, or
+                # we have reached the maximum number of processes
+                while (arguments_queue.qsize() > 0 and
+                       len(list_of_processes) < config['n_processes']):
+                    
+                    # Get arguments from queue and start new process
+                    arguments = arguments_queue.get()
+                    p = Process(target=queue_worker,
+                                kwargs=dict(arguments=arguments,
+                                            results_queue=results_queue,
+                                            generate_sample=generate_sample))
+        
+                    # Remember this process and its starting time and start it
+                    list_of_processes.append(dict(process=p,
+                                                  start_time=time.time()))
+                    p.start()
+        
+                # Move stuff from the results_queue so that workers finish
+                # (Otherwise the results_queue blocks the worker processes.)
+                while results_queue.qsize() > 0:
+                    results_list.append(results_queue.get())
 
-                # Start a new process that runs a queue_worker with the
-                # arguments we just collected
-                process = Process(target=queue_worker, kwargs=kwargs)
-                process.daemon = True
-                process.start()
+                # Update the progress bar based on the number of results
+                progressbar.update(len(results_list) - progressbar.n)
 
-            # Wait until the queue is empty
-            arguments_queue.join()
-
-            # End the queue_worker processes for the arguments_queue
-            for i in range(config['n_processes']):
-                arguments_queue.put(None)
-            arguments_queue.join()
+                # Sleep for one second before we check the processes again
+                time.sleep(1)
+            
+        # ---------------------------------------------------------------------
+        # Process results in the results_list
+        # ---------------------------------------------------------------------
 
         # Cast results queue to list and unzip samples and parameters.
         # Note: Applying queue_to_list will empty results_queue! (And this
         # is necessary for the sample generation script to finish!)
-        results_list = queue_to_list(results_queue)
         samples, injection_parameters_ = zip(*results_list)
 
         # Sort the results by event time
@@ -310,7 +339,7 @@ if __name__ == '__main__':
 
         # Store results: For noise samples, we don't need to keep the list
         # of injection parameters (which are all None)
-        if make_injection:
+        if sample_type == 'injections':
             injection_samples = samples
             injection_parameters = injection_parameters_
         else:
@@ -344,7 +373,7 @@ if __name__ == '__main__':
     # Create a SampleFile dict from list of samples and save it as an HDF file
     # -------------------------------------------------------------------------
 
-    print('Saving the results ...', end=' ')
+    print('Saving the results to HDF file ...', end=' ')
 
     # Initialize the dictionary that we use to create a SampleFile object
     sample_file_dict = dict(command_line_arguments=command_line_arguments,
@@ -409,6 +438,5 @@ if __name__ == '__main__':
         os.remove(duplicate_path)
 
     # Print the total run time
-    print('Total runtime: {:.1f} seconds!'
-          .format(time.time() - script_start_time))
+    print('Total runtime: {:.1f} seconds!'.format(time.time() - script_start))
     print('')
