@@ -12,10 +12,9 @@ import h5py
 import os
 import sys
 
+from pycbc.catalog import Catalog
 from pycbc.types.timeseries import TimeSeries
 from lal import LIGOTimeGPS
-
-from Constants import GW150914_TIME, GW151226_TIME, LVT151012_TIME
 
 
 # -----------------------------------------------------------------------------
@@ -351,9 +350,12 @@ class NoiseTimeline:
         # Check if given time is too close to a real event
         # ---------------------------------------------------------------------
 
-        if any(abs(gps_time - _) <= delta_t for _ in (GW150914_TIME,
-                                                      GW151226_TIME,
-                                                      LVT151012_TIME)):
+        # Get GPS times of all confirmed mergers
+        catalog = Catalog()
+        real_event_times = [catalog.mergers[_].time for _ in catalog.names]
+
+        # Check if gps_time is too close to any of these times
+        if any(abs(gps_time - _) <= delta_t for _ in real_event_times):
             return False
 
         # ---------------------------------------------------------------------
