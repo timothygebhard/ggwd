@@ -89,8 +89,8 @@ class WaveformParameterGenerator(object):
 
 def fade_on(timeseries, alpha=0.25):
     """
-    Take a PyCBC time series and use a one-sided Tukey window to "fade on"
-    the waveform (to reduce discontinuities in the amplitude).
+    Take a PyCBC time series and use a one-sided Tukey window to "fade
+    on" the waveform (to reduce discontinuities in the amplitude).
 
     Args:
         timeseries: The PyCBC TimeSeries object to be faded on.
@@ -115,7 +115,9 @@ def fade_on(timeseries, alpha=0.25):
 
     # Create and return a TimeSeries object again from the resulting array
     # using the original parameters (delta_t and epoch) of the time series
-    return TimeSeries(initial_array=ts, delta_t=delta_t, epoch=epoch)
+    return TimeSeries(initial_array=ts,
+                      delta_t=delta_t,
+                      epoch=epoch)
 
 
 def get_waveform(static_arguments,
@@ -370,7 +372,7 @@ def generate_sample(static_arguments,
     #    In the case of synthetic noise, we simply generate random noise of
     #    length 2 * delta_t (in seconds).
     # 2. The delta_t that is expected by noise_from_pdf() is simply the
-    #    inverse of the target sampling rate, i.e. the time difference between
+    #    inverse of the target sampling rate, i.e., the time difference between
     #    two consecutive samples!
 
     # If the event_time is None, we generate synthetic noise
@@ -391,13 +393,13 @@ def generate_sample(static_arguments,
                 noise_from_psd(length=(2 * delta_t * target_sampling_rate),
                                delta_t=(1.0 / target_sampling_rate),
                                psd=psd,
-                               seed=None)
+                               seed=event_time)
 
             # Manually fix the noise start time to match the fake event time
             # that we are using. For some reason, the correct setter method
             # for this property does not work?!
             # noinspection PyProtectedMember
-            noise[det]._epoch = LIGOTimeGPS(1234567890 - delta_t)
+            noise[det]._epoch = LIGOTimeGPS(event_time - delta_t)
 
     # Otherwise we select the noise from the corresponding HDF file
     else:
