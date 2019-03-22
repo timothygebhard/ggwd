@@ -26,9 +26,11 @@ class SampleFile:
         Instantiate a new SampleFile object.
 
         Args:
-            data (dict): A dictionary containing the following keys:
-                {'command_line_arguments', 'static_arguments',
-                'injection_samples', 'noise_samples', 'injection_parameters'}
+            data: dict
+                A dictionary containing the following keys:
+                    {'command_line_arguments', 'static_arguments',
+                     'injection_samples', 'noise_samples',
+                     'injection_parameters'}
                 The value of every key is again a dictionary relating the
                 names of sample parameters (e.g., 'h1_snr') to a numpy array
                 containing the values for that parameter (for all samples).
@@ -45,22 +47,24 @@ class SampleFile:
                              static_arguments=dict(),
                              injection_samples=dict(),
                              noise_samples=dict(),
-                             injection_parameters=dict())
+                             injection_parameters=dict(),
+                             normalization_parameters=dict())
 
     # -------------------------------------------------------------------------
 
     @staticmethod
     def __check_data(data):
         """
-        Run some sanity checks on `data`. Raises an assertion error if the
-        data fail any of these sanity checks.
+        Run some sanity checks on `data`. Raises an assertion error if
+        the data fail any of these sanity checks.
 
         Args:
-            data (dict):
-                A dict as specified in the __init__ of this class, that is,
-                a dictionary containing the following keys:
-                {'command_line_arguments', 'static_arguments',
-                'injection_samples', 'noise_samples', 'injection_parameters'}.
+            data: dict
+                A dictionary as specified in the __init__ of this class,
+                that is, a dictionary containing the following keys:
+                    {'command_line_arguments', 'static_arguments',
+                     'injection_samples', 'noise_samples',
+                     'injection_parameters', 'normalization_parameters'}
         """
 
         assert isinstance(data, dict) or data is None, \
@@ -78,6 +82,8 @@ class SampleFile:
                 'data must provide key "noise_samples"!'
             assert 'injection_parameters' in data.keys(), \
                 'data must provide key "injection_parameters"!'
+            assert 'normalization_parameters' in data.keys(), \
+                'data must provide key "normalization_parameters"!'
 
     # -------------------------------------------------------------------------
 
@@ -107,12 +113,13 @@ class SampleFile:
 
     def read_hdf(self, file_path):
         """
-        Read in an existing HDF sample file (e.g., to use the SampleFile
-        object as a convenience wrapper for accessing the file contents).
+        Read in an existing HDF sample file (e.g., to use a SampleFile
+        object as a convenience wrapper for accessing the contents of
+        an HDF samples file).
 
         Args:
-            file_path (str):
-                 The path to the HDF file to be read into the SampleFile.
+            file_path: str
+                The path to the HDF file to be read into the SampleFile.
         """
 
         # Clear the existing data
@@ -160,6 +167,13 @@ class SampleFile:
                         np.array(hdf_file['injection_parameters'][key])
                 except TypeError:
                     self.data['injection_parameters'][key] = np.array(None)
+
+            # Read in dict with normalization parameters
+            self.data['normalization_parameters'] = \
+                dict(hdf_file['normalization_parameters'].attrs)
+            self.data['normalization_parameters'] = \
+                {key: float(value) for key, value in
+                 iteritems(self.data['normalization_parameters'])}
 
     # -------------------------------------------------------------------------
 
@@ -221,6 +235,12 @@ class SampleFile:
                                          shape=None,
                                          dtype='f4')
 
+            # Create group for normalization_parameters and save every item
+            # of the dict as a new attribute
+            group = hdf_file.create_group('normalization_parameters')
+            for key, value in iteritems(self.data['normalization_parameters']):
+                group.attrs[key] = float(value)
+
     # -------------------------------------------------------------------------
 
     def as_dataframe(self,
@@ -232,19 +252,20 @@ class SampleFile:
         Return the contents of the SampleFile as a pandas data frame.
 
         Args:
-            injection_parameters (bool):
+            injection_parameters: bool
                 Return injection parameters for every sample?
-            static_arguments (bool):
+            static_arguments: bool
                 Return static_arguments for every sample?
-            command_line_arguments (bool):
+            command_line_arguments: bool
                 Return command_line_arguments for every sample?
-            split_injections_noise (bool):
-                If this is true, a separate data frame will be returned for
-                both the samples with and without an injection.
+            split_injections_noise: bool
+                If this is true, a separate data frame will be returned
+                for both the samples with and without an injection.
 
         Returns:
-            One (or two, if split_injections_noise is set to True) pandas
-            data frame containing the sample stored in the SampleFile object.
+            One (or two, if split_injections_noise is set to True)
+            pandas data frame containing the sample stored in the
+            SampleFile object.
         """
 
         # Create a data frame for the samples containing an injection
@@ -322,7 +343,7 @@ class SampleFile:
         try:
             df['event_time'] = df['event_time'].astype(int)
         except KeyError:
-            warn('\nNo key `event_time`: Data frame is probably empty!')
+            warn('\nNo key "event_time": Data frame is probably empty!')
 
         # Either split into two data frames for injection and noise samples
         if split_injections_noise:

@@ -316,9 +316,29 @@ if __name__ == '__main__':
         else:
             noise_samples = samples
 
-        print('Generation of samples {}containing injections completed!'.
-              format(print_string))
-        print('')
+        print('Sample generation completed!\n')
+
+    # -------------------------------------------------------------------------
+    # Compute the normalization parameters for this file
+    # -------------------------------------------------------------------------
+
+    print('Computing normalization parameters for sample...', end=' ')
+
+    # Group samples (with and without injection) by detector
+    h1_samples = [_['h1_strain'] for _ in injection_samples + noise_samples]
+    l1_samples = [_['l1_strain'] for _ in injection_samples + noise_samples]
+
+    # Convert into a single long recording that is a numpy array
+    h1_samples = np.concatenate(h1_samples)
+    l1_samples = np.concatenate(l1_samples)
+    
+    # Compute the mean and standard deviation for both detectors
+    normalization_parameters = dict(h1_mean=np.mean(h1_samples),
+                                    l1_mean=np.mean(l1_samples),
+                                    h1_std=np.std(h1_samples),
+                                    l1_std=np.std(l1_samples))
+    
+    print('Done!\n')
 
     # -------------------------------------------------------------------------
     # Create a SampleFile dict from list of samples and save it as an HDF file
@@ -328,7 +348,8 @@ if __name__ == '__main__':
 
     # Initialize the dictionary that we use to create a SampleFile object
     sample_file_dict = dict(command_line_arguments=command_line_arguments,
-                            static_arguments=static_arguments)
+                            static_arguments=static_arguments,
+                            normalization_parameters=normalization_parameters)
 
     # Add injection samples: For this, we have to turn a list of dicts into
     # a numpy array for every key of the dict
