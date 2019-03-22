@@ -11,14 +11,14 @@ from __future__ import print_function
 
 import argparse
 import json
-import time
-import sys
-import os
 import numpy as np
+import os
+import sys
+import time
 
 from itertools import count
-from tqdm import tqdm
 from multiprocessing import Process, JoinableQueue
+from tqdm import tqdm
 
 from pycbc.workflow import WorkflowConfigParser
 from pycbc.distributions import read_params_from_config
@@ -28,13 +28,50 @@ from pycbc.distributions import read_params_from_config
 # sibling directory if you are "just" in a script and not in a package
 sys.path.insert(0, os.path.realpath('..'))
 
-# Now we can even import from generate_gw_data without PyCharm complaining!
-from generate_gw_data.HDFTools import NoiseTimeline  # noqa
-from generate_gw_data.MultiprocessingTools import queue_worker  # noqa
-from generate_gw_data.WaveformTools import WaveformParameterGenerator, \
+# Now we can even import from utils without PyCharm complaining!
+from utils.HDFTools import NoiseTimeline  # noqa
+from utils.WaveformTools import WaveformParameterGenerator, \
     generate_sample, amend_static_arguments  # noqa
-from generate_gw_data.SampleFileTools import SampleFile  # noqa
-from generate_gw_data.TypecastingTools import typecast_static_args  # noqa
+from utils.samplefiles import SampleFile  # noqa
+from utils.TypecastingTools import typecast_static_args  # noqa
+
+
+# -----------------------------------------------------------------------------
+# FUNCTION DEFINITIONS
+# -----------------------------------------------------------------------------
+
+def queue_worker(arguments,
+                 results_queue,
+                 generate_sample):
+    """
+    This function will be passed to a queue worker and is responsible
+    for getting a set of arguments from the arguments queue, generating
+    the corresponding sample, adding it to the results queue, and
+    updating the progress bar.
+
+    Args:
+        arguments: dict
+            Dictionary containing the arguments for generate_sample().
+        results_queue: JoinableQueue
+            The queue to which the result of this worker is passed.
+        generate_sample: function
+            A function that can generate samples. Usually, this is:
+                generate_sample(static_arguments,
+                                event_time,
+                                waveform_params)
+            as defined in WaveformTools.py
+    """
+    
+    # Try to generate a sample using the given arguments
+    try:
+        result = generate_sample(**arguments)
+        results_queue.put(result)
+        return True
+    
+    # For some arguments, LALSuite crashes during the sample generation.
+    # In this case we can try again with different waveform parameters:
+    except RuntimeError:
+        sys.exit('Runtime Error')
 
 
 # -----------------------------------------------------------------------------

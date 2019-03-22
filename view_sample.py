@@ -20,7 +20,7 @@ import time
 # sibling directory if you are "just" in a script and not in a package
 sys.path.insert(0, os.path.realpath('..'))
 
-from generate_gw_data.SampleFileTools import SampleFile  # noqa
+from utils.samplefiles import SampleFile  # noqa
 
 # We need to load a different backend for matplotlib before import plt to
 # avoid problems on environments where the $DISPLAY variable is not set.

@@ -19,8 +19,8 @@ import sys
 # sibling directory if you are "just" in a script and not in a package
 sys.path.insert(0, os.path.realpath('..'))
 
-# Now we can even import from generate_gw_data without PyCharm complaining!
-from generate_gw_data.ProgressbarTools import ProgressBar  # noqa
+# Now we can even import from utils without PyCharm complaining!
+from utils.ProgressbarTools import ProgressBar  # noqa
 
 
 # -----------------------------------------------------------------------------
