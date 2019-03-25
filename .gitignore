@@ -1,3 +1,6 @@
+# Local versions of files (e.g., config files)
+*.local.*
+
 # HDF files
 *.hdf
 
