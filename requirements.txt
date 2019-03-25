@@ -1,12 +1,10 @@
-astropy==2.0.9
-h5py==2.8.0
-lalsuite==6.49
+h5py
+lalsuite==6.53
 matplotlib
 numpy
 pandas
-PyCBC==1.13.3
+PyCBC==1.13.5
 requests
 scipy
 six
 tqdm
-weave==0.16.0
