@@ -14,17 +14,11 @@ import os
 import sys
 import time
 
-
-# Here we need to add the parent directory to the $PYTHONPATH, because
-# apparently Python does not have a less hacky way of importing from a
-# sibling directory if you are "just" in a script and not in a package
-sys.path.insert(0, os.path.realpath('..'))
-
-from utils.samplefiles import SampleFile  # noqa
+from utils.samplefiles import SampleFile
 
 # We need to load a different backend for matplotlib before import plt to
 # avoid problems on environments where the $DISPLAY variable is not set.
-import matplotlib  # noqa
+import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa
 

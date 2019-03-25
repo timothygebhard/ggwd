@@ -12,15 +12,8 @@ import os
 import argparse
 import time
 import requests
-import sys
 
-# Here we need to add the parent directory to the $PYTHONPATH, because
-# apparently Python does not have a less hacky way of importing from a
-# sibling directory if you are "just" in a script and not in a package
-sys.path.insert(0, os.path.realpath('..'))
-
-# Now we can even import from utils without PyCharm complaining!
-from utils.ProgressbarTools import ProgressBar  # noqa
+from utils.progressbar import ProgressBar
 
 
 # -----------------------------------------------------------------------------
