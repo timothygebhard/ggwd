@@ -1,7 +1,6 @@
 """
-Provide the ProgressBar class, which --- as the name suggests --- provides a
-wrapper around an iterable that automatically produces a progress bar when
-iterating.
+Provide a custom ProgressBar class, which provides a wrapper around an
+iterable that automatically produces a progress bar when iterating.
 """
 
 # -----------------------------------------------------------------------------
@@ -52,7 +51,20 @@ class RepeatedTimer:
 
 class ProgressBar:
 
-    def __init__(self, iterable, bar_length=50, auto_update=False):
+    def __init__(self,
+                 iterable,
+                 bar_length=50,
+                 auto_update=False):
+        """
+        Construct a new custom ProgressBar around a given iterable.
+        
+        Args:
+            iterable (iterable): The iterable to be "decorated" with
+                a progressbar.
+            bar_length (int): Length of the bar itself (in characters).
+            auto_update (bool): Whether or not to automatically write
+                the updated progressbar to the command line.
+        """
 
         self.iterable = iterable
         self.max_value = len(iterable)
@@ -108,6 +120,9 @@ class ProgressBar:
     # -------------------------------------------------------------------------
 
     def get_timediff(self):
+        """
+        Returns: Time elapsed since progress bar was instantiated.
+        """
 
         if self.start_time is not None:
             return time.time() - self.start_time
@@ -116,7 +131,17 @@ class ProgressBar:
 
     # -------------------------------------------------------------------------
 
-    def get_eta(self, percent):
+    def get_eta(self,
+                percent):
+        """
+        Get the estimated time of arrival (ETA) by linear interpolation.
+        
+        Args:
+            percent (float): Current progress in percent.
+
+        Returns:
+            Estimated time of arrival in seconds.
+        """
 
         if self.last_timediff is not None and percent != 0:
             return max(0, self.last_timediff / percent - self.get_timediff())
@@ -125,7 +150,18 @@ class ProgressBar:
 
     # -------------------------------------------------------------------------
 
-    def get_progressbar(self, index):
+    def get_progressbar(self,
+                        index):
+        """
+        Construct the progressbar itself (bar, ETA, etc.).
+        
+        Args:
+            index (int): Current index of the iterable; used to compute
+                the current progress percentage.
+
+        Returns:
+            A string containing the basic progress bar.
+        """
 
         # Construct the actual progress bar
         percent = float(index) / self.max_value
@@ -155,7 +191,17 @@ class ProgressBar:
 
     # -------------------------------------------------------------------------
 
-    def write(self, clear_line=False, extras=list()):
+    def write(self,
+              clear_line=False,
+              extras=()):
+        """
+        Construct the progress bar and write it to the command line.
+        
+        Args:
+            clear_line (bool): Whether or not to clear the last line.
+            extras (list): List of additional outputs (e.g., the file
+                that is currently being downloaded).
+        """
 
         self.extras_ = extras
 
