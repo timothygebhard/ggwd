@@ -83,6 +83,6 @@ def read_json_config(file_path):
     missing_keys = required_keys.difference(set(config.keys()))
     if len(missing_keys) != 0:
         raise KeyError('Missing required key(s) in JSON configuration file: '
-                       '\n{}'.format(', '.join(list(missing_keys))))
+                       '{}'.format(', '.join(list(missing_keys))))
 
     return config
