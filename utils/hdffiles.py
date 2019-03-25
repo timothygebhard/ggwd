@@ -7,6 +7,7 @@ Provide classes and functions for reading and writing HDF files.
 # -----------------------------------------------------------------------------
 
 from __future__ import print_function
+
 import numpy as np
 import h5py
 import os
@@ -23,17 +24,17 @@ from lal import LIGOTimeGPS
 
 def get_file_paths(directory, extensions=None):
     """
-    Take a directory and return the paths to all files in this directory and
-    its subdirectories. Optionally filter out only files specific extensions.
+    Take a directory and return the paths to all files in this
+    directory and its subdirectories. Optionally filter out only
+    files specific extensions.
 
     Args:
-        directory: str
-            Path to a directory.
-        extensions: list of str
-            List of allowed file extensions, e.g. ['hdf', 'h5']
+        directory (str): Path to a directory.
+        extensions (list): List of allowed file extensions,
+            for example: ['hdf', 'h5'].
 
     Returns:
-        List of file paths.
+        List of paths of all files matching the above descriptions.
     """
 
     file_paths = []
@@ -56,39 +57,37 @@ def get_file_paths(directory, extensions=None):
 
 def get_strain_from_hdf_file(hdf_file_paths,
                              gps_time,
-                             delta_t,
+                             interval_width,
                              original_sampling_rate=4096,
                              target_sampling_rate=4096,
                              as_pycbc_timeseries=False):
     """
-    For a given GPS time, select the interval [gps_time - delta_t,
-    gps_time + delta] from the HDF files specified in hdf_file_paths,
-    and resample them to the given sampling_rate.
+    For a given `gps_time`, select the interval of length
+    `interval_width` (centered around `gps_time`) from the HDF files
+    specified in `hdf_file_paths`, and resample them to the given
+    `target_sampling_rate`.
 
     Args:
-        hdf_file_paths (dict):
-            A dictionary {'H1', 'L1'} which holds the paths to the HDF files
-            containing the interval around `gps_time.
-        gps_time (int):
-            A valid noise time (GPS time stamp). See also function
-            `is_valid_noise_time()`.
-        delta_t (int):
-            Half the length of the desired sample (in seconds).
-        original_sampling_rate (int):
-            The original sampling rate (in Hertz) of the HDF files
-            sample; by default, this value should be 4096.
-        target_sampling_rate (int):
-            The sampling rate (in Hertz) to which the strain should be
-            down-sampled (if desired). Must be a divisor of
-            the 'original_sampling_rate'.
-        as_pycbc_timeseries (bool):
-            Whether to return the strain as a dict of numpy arrays or a dict
-            of PyCBC `TimeSeries objects.
+        hdf_file_paths (dict): A dictionary with keys {'H1', 'L1'},
+            which holds the paths to the HDF files containing the
+            interval around `gps_time`.
+        gps_time (int): A (valid) background noise time (GPS timestamp).
+        interval_width (int): The length of the strain sample (in
+            seconds) to be selected from the HDF files.
+        original_sampling_rate (int): The original sampling rate (in
+            Hertz) of the HDF files sample. Default is 4096.
+        target_sampling_rate (int): The sampling rate (in Hertz) to
+            which the strain should be down-sampled (if desired). Must
+            be a divisor of the `original_sampling_rate`.
+        as_pycbc_timeseries (bool): Whether to return the strain as a
+            dict of numpy arrays or as a dict of objects of type
+            `pycbc.types.timeseries.TimeSeries`.
 
-    Returns: (dict)
-        The noise sample of length `size`, starting at `time` for both
-        detectors (H1 and L1), with the desired `sampling_rate`,
-        as a dictionary containing numpy arrays.
+    Returns:
+        A dictionary with keys {'H1', 'L1'}. For each key, the dict
+        contains a strain sample (as a numpy array) of the given length,
+        centered around `gps_time`, (down)-sampled to the desired
+        `target_sampling_rate`.
     """
 
     # -------------------------------------------------------------------------
@@ -97,8 +96,8 @@ def get_strain_from_hdf_file(hdf_file_paths,
 
     assert isinstance(gps_time, int), \
         'time is not an integer!'
-    assert isinstance(delta_t, int), \
-        'size is not an integer'
+    assert isinstance(interval_width, int), \
+        'interval_width is not an integer'
     assert isinstance(original_sampling_rate, int), \
         'original_sampling_rate is not an integer'
     assert isinstance(target_sampling_rate, int), \
@@ -110,6 +109,10 @@ def get_strain_from_hdf_file(hdf_file_paths,
     # -------------------------------------------------------------------------
     # Read out the strain from the HDF files
     # -------------------------------------------------------------------------
+
+    # Compute the offset = half the interval width (intervals are centered
+    # around the given gps_time)
+    offset = int(interval_width / 2)
 
     # Compute the resampling factor
     sampling_factor = int(original_sampling_rate / target_sampling_rate)
@@ -129,9 +132,9 @@ def get_strain_from_hdf_file(hdf_file_paths,
             # Get the start_time and compute array indices
             start_time = int(hdf_file['meta']['GPSstart'][()])
             start_idx = \
-                (gps_time - start_time - delta_t) * original_sampling_rate
+                (gps_time - start_time - offset) * original_sampling_rate
             end_idx = \
-                (gps_time - start_time + delta_t) * original_sampling_rate
+                (gps_time - start_time + offset) * original_sampling_rate
 
             # Select the sample from the strain
             strain = np.array(hdf_file['strain']['Strain'])
@@ -160,7 +163,7 @@ def get_strain_from_hdf_file(hdf_file_paths,
             timeseries[detector] = \
                 TimeSeries(initial_array=sample[detector],
                            delta_t=1.0/target_sampling_rate,
-                           epoch=LIGOTimeGPS(gps_time - delta_t))
+                           epoch=LIGOTimeGPS(gps_time - offset))
 
         return timeseries
 
@@ -182,9 +185,9 @@ class NoiseTimeline:
         # Print debug messages or not?
         self.verbose = verbose
 
-        # Store and set the random seed
-        self.random_seed = random_seed
-        np.random.seed(random_seed)
+        # Create a new random number generator with the given seed to
+        # decouple this from the global numpy RNG (for reproducibility)
+        self.rng = np.random.RandomState(seed=random_seed)
 
         # Get the list of all HDF files in the specified directory
         self.vprint('Getting HDF file paths...', end=' ')
@@ -206,11 +209,11 @@ class NoiseTimeline:
 
     def vprint(self, string, *args, **kwargs):
         """
-        verbose print: Wrapper around print() to only call it if self.verbose
-        is set to true.
+        verbose print: Wrapper around print() to only call it if
+        self.verbose is set to true.
 
         Args:
-            string: String to be printed if self.verbose is True.
+            string (str): String to be printed if self.verbose is True.
             *args: arguments passed to print()
             **kwargs: keyword arguments passed to print()
         """
@@ -303,34 +306,35 @@ class NoiseTimeline:
 
     def is_valid(self,
                  gps_time,
-                 delta_t=256,
+                 delta_t=16,
                  dq_bits=(0, 1, 2, 3),
                  inj_bits=(0, 1, 2, 4)):
         """
-        For a given GPS time, test if is a valid time to sample noise from
-        by checking if all data in the interval [gps_time - delta_t,
-        gps_time + delta_t] have the specified dq_bits and inj_bits set.
+        For a given GPS time, test if is a valid time to sample noise
+        from by checking if all data points in the interval
+            [gps_time - delta_t, gps_time + delta_t]
+        have the specified dq_bits and inj_bits set.
 
         Args:
-            gps_time: int
-                The GPS time from which we would like to draw a noise sample.
-            delta_t: int
-                The number of seconds around `gps_time` which we also want
-                to be valid (because the sample will be an interval)
-            dq_bits: tuple of int
-                The Data Quality Bits which one would like to require, see
-                here: https://www.gw-openscience.org/archive/dataset/O1/
-                Example: dq_bits=(0, 1, 2, 3) means that the DQ needs to pass
-                all tests up to `CAT3`.
-            inj_bits: tuple of int
-                The Injection Bits which one would like to require, see
-                here: https://www.gw-openscience.org/archive/dataset/O1/
-                Example: inj_bits=(0, 1, 2, 4) means that only continuous wave
-                (CW) injections are permitted; all recordings containing any
-                of other type of injection will be invalid for sampling.
+            gps_time (int): The GPS time whose validity we are checking.
+            delta_t (int): The number of seconds around `gps_time`
+                which we also want to be valid (because the sample will
+                be an interval).
+            dq_bits (tuple): The Data Quality Bits which one would like
+                to require, see here:
+                    https://www.gw-openscience.org/archive/dataset/O1/
+                For example: dq_bits=(0, 1, 2, 3) means that the DQ
+                needs  to pass all tests up to `CAT3`.
+            inj_bits (tuple): The Injection Bits which one would like
+                to require, see here:
+                    https://www.gw-openscience.org/archive/dataset/O1/
+                For example: inj_bits=(0, 1, 2, 4) means that only
+                continuous wave (CW) injections are permitted; all
+                recordings containing any of other type of injection
+                will be invalid for sampling.
 
         Returns:
-
+            True if `gps_time` is valid, otherwise False.
         """
 
         # ---------------------------------------------------------------------
@@ -442,7 +446,7 @@ class NoiseTimeline:
     # -------------------------------------------------------------------------
 
     def sample(self,
-               delta_t=256,
+               delta_t=16,
                dq_bits=(0, 1, 2, 3),
                inj_bits=(0, 1, 2, 4),
                return_paths=False):
@@ -452,26 +456,23 @@ class NoiseTimeline:
         passes the is_valid() test.
 
         Args:
-            delta_t: int
-                For an explanation, see is_valid()
-            dq_bits: tuple
-                For an explanation, see is_valid()
-            inj_bits: tuple
-                For an explanation, see is_valid()
-            return_paths: boolean
-                Whether or not to return the paths to the HDF files
-                containing the gps_time
+            delta_t (int): For an explanation, see is_valid().
+            dq_bits (tuple): For an explanation, see is_valid().
+            inj_bits (tuple): For an explanation, see is_valid().
+            return_paths (bool): Whether or not to return the paths to
+                the HDF files containing the `gps_time`.
 
         Returns:
-            A valid GPS time (and optionally a dict with the file paths).
+            A valid GPS time and optionally a dict with the file paths
+            to the HDF files containing that GPS time.
         """
 
         # Keep sampling random times until we find a valid one...
         while True:
 
             # Randomly choose a GPS time between the start and end
-            gps_time = np.random.randint(self.gps_start_time + delta_t,
-                                         self.gps_end_time - delta_t)
+            gps_time = self.rng.randint(self.gps_start_time + delta_t,
+                                        self.gps_end_time - delta_t)
 
             # If it is a valid time, return it
             if self.is_valid(gps_time=gps_time, delta_t=delta_t,
@@ -483,19 +484,17 @@ class NoiseTimeline:
 
     # -------------------------------------------------------------------------
 
-    def get_file_paths_for_time(self,
-                                gps_time):
+    def get_file_paths_for_time(self, gps_time):
         """
-        For a given (valid) GPS time, find the two HDF files (for H1 and L1)
-        which contain the corresponding recording.
+        For a given (valid) GPS time, find the two HDF files (for the
+        two detectors H1 and L1) which contain the corresponding strain.
 
         Args:
-            gps_time: int
-                A valid GPS time stamp.
+            gps_time (int): A valid GPS time stamp.
 
-        Returns: dict or None
-            A dictionary with keys 'H1', 'L1' containing the paths to the HDF
-            files, or None, if no such files could be found
+        Returns:
+            A dictionary with keys {'H1', 'L1'} containing the paths to
+            the HDF files, or None if no such files could be found.
         """
 
         # Keep track of the results, i.e., the paths to the HDF files
@@ -524,12 +523,12 @@ class NoiseTimeline:
 
     def idx2gps(self, idx):
         """
-        Map an index to a GPS time by correcting for the start time of the
-        observation run, as determined from the HDF files.
+        Map an index to a GPS time by correcting for the start time of
+        the observation run, as determined from the HDF files.
 
         Args:
-            idx: int
-                An index of a timeseries array (covering an observation run)
+            idx (int): An index of a timeseries array (covering an
+                observation run).
 
         Returns:
             The corresponding GPS time.
@@ -541,13 +540,12 @@ class NoiseTimeline:
 
     def gps2idx(self, gps):
         """
-        Map an GPS time to an index by correcting for the start time of the
-        observation run, as determined from the HDF files.
+        Map an GPS time to an index by correcting for the start time of
+        the observation run, as determined from the HDF files.
 
         Args:
-            gps: int
-                A GPS time belonging to a point in time between the start and
-                end of an obversation run
+            gps (int): A GPS time belonging to a point in time between
+                the start and end of an obversation run.
 
         Returns:
             The corresponding time series index.
