@@ -21,19 +21,20 @@ from warnings import warn
 
 class SampleFile:
 
-    def __init__(self, data=None):
+    def __init__(self,
+                 data=None):
         """
         Instantiate a new SampleFile object.
 
         Args:
-            data: dict
-                A dictionary containing the following keys:
+            data (dict): A dictionary containing the following keys:
                     {'command_line_arguments', 'static_arguments',
                      'injection_samples', 'noise_samples',
-                     'injection_parameters'}
-                The value of every key is again a dictionary relating the
-                names of sample parameters (e.g., 'h1_snr') to a numpy array
-                containing the values for that parameter (for all samples).
+                     'injection_parameters', 'normalization_parameters'}
+                The value of every key is again a dictionary relating
+                the names of sample parameters (e.g., 'h1_snr') to a
+                numpy array containing the values for that parameter
+                (for all samples).
         """
 
         # Perform sanity checks on data
@@ -59,9 +60,9 @@ class SampleFile:
         the data fail any of these sanity checks.
 
         Args:
-            data: dict
-                A dictionary as specified in the __init__ of this class,
-                that is, a dictionary containing the following keys:
+            data (dict): A dictionary as specified in the __init__ of
+                this class, that is, a dictionary containing the
+                following keys:
                     {'command_line_arguments', 'static_arguments',
                      'injection_samples', 'noise_samples',
                      'injection_parameters', 'normalization_parameters'}
@@ -118,8 +119,8 @@ class SampleFile:
         an HDF samples file).
 
         Args:
-            file_path: str
-                The path to the HDF file to be read into the SampleFile.
+            file_path (str): The path to the HDF file to be read into
+                the SampleFile object.
         """
 
         # Clear the existing data
@@ -252,18 +253,18 @@ class SampleFile:
         Return the contents of the SampleFile as a pandas data frame.
 
         Args:
-            injection_parameters: bool
-                Return injection parameters for every sample?
-            static_arguments: bool
-                Return static_arguments for every sample?
-            command_line_arguments: bool
-                Return command_line_arguments for every sample?
-            split_injections_noise: bool
-                If this is true, a separate data frame will be returned
-                for both the samples with and without an injection.
+            injection_parameters (bool): Whether or not to return
+                the `injection parameters` for every sample.
+            static_arguments (bool): Whether or not to return
+                the `static_arguments` for every sample.
+            command_line_arguments (bool): Whether or not to return
+                the `command_line_arguments` for every sample.
+            split_injections_noise (bool): If this is set to True, a
+                separate data frame will be returned for both the
+                samples with and without an injection.
 
         Returns:
-            One (or two, if split_injections_noise is set to True)
+            One (or two, if `split_injections_noise` is set to True)
             pandas data frame containing the sample stored in the
             SampleFile object.
         """
