@@ -1,9 +1,8 @@
 {
   "random_seed": 42,
-  "background_data_directory": null,
+  "background_data_directory": "/is/cluster/shared/ei/ligo_01/",
   "dq_bits": [0, 1, 2, 3],
   "inj_bits": [0, 1, 2, 4],
-  "delta_t": 32,
   "waveform_params_file_name": "waveform_params.ini",
   "max_runtime": 60,
   "n_injection_samples": 32,
