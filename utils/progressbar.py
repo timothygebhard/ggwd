@@ -1,6 +1,7 @@
 """
-Provide a custom ProgressBar class, which provides a wrapper around an
-iterable that automatically produces a progress bar when iterating.
+Provide a custom ProgressBar class, which provides a wrapper around
+an iterable that automatically produces a progressbar when iterating
+over it.
 """
 
 # -----------------------------------------------------------------------------
@@ -20,7 +21,7 @@ class RepeatedTimer:
     """
     Wrapper class to repeat the given `func` every `interval` seconds
     (asynchronously in the background).
-    Source: https://stackoverflow.com/a/33054922/4100721
+    Source: https://stackoverflow.com/a/33054922/4100721.
     """
 
     def __init__(self, interval, func, *args, **kwargs):
@@ -50,21 +51,25 @@ class RepeatedTimer:
 
 
 class ProgressBar:
+    """
+    :class:`ProgressBar` objects are a custom way to "decorate"
+    a given iterable to produce a progress bar when looping over it.
+    This class allows to also produce some output with the progress
+    bar, such as information about the element of the iterable that is
+    currently being processed.
 
+    Args:
+        iterable (iterable): The iterable to be "decorated" with
+            a progressbar.
+        bar_length (int): Length of the bar itself (in characters).
+        auto_update (bool): Whether or not to automatically write
+            the updated progressbar to the command line.
+    """
+    
     def __init__(self,
                  iterable,
                  bar_length=50,
                  auto_update=False):
-        """
-        Construct a new custom ProgressBar around a given iterable.
-        
-        Args:
-            iterable (iterable): The iterable to be "decorated" with
-                a progressbar.
-            bar_length (int): Length of the bar itself (in characters).
-            auto_update (bool): Whether or not to automatically write
-                the updated progressbar to the command line.
-        """
 
         self.iterable = iterable
         self.max_value = len(iterable)

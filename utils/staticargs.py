@@ -1,5 +1,7 @@
 """
-Provide tools that are needed for typecasting.
+Provide tools that are needed for amending and typecasting the static
+arguments from an `*.ini` configuration file, which controls the
+waveform simulation process.
 """
 
 # -----------------------------------------------------------------------------
@@ -15,17 +17,17 @@ import copy
 
 def amend_static_args(static_args):
     """
-    Amend the static_args from the *.ini configuration file by adding
+    Amend the static_args from the `*.ini` configuration file by adding
     the parameters that can be computed directly from others (more
     intuitive ones). Note that the static_args should have been
-    properly typecast first; see typecast_static_args().
+    properly typecast first; see :func:`typecast_static_args()`.
 
     Args:
         static_args (dict): The static_args dict after it has been
-            typecast by typecast_static_args().
+            typecast by :func:`typecast_static_args()`.
 
     Returns:
-        The amended static_args, where implicitly defined variables
+        The amended `static_args`, where implicitly defined variables
         have been added.
     """
 
@@ -59,16 +61,16 @@ def amend_static_args(static_args):
 
 def typecast_static_args(static_args):
     """
-    Take the static_args dict as it is read in from the PyCBC config
-    file (i.e., all values are strings) and typecast the variables as
-    needed.
+    Take the `static_args` dictionary as it is read in from the PyCBC
+    configuration file (i.e., all values are strings) and cast the
+    values to the correct types (`float` or `int`).
 
     Args:
-        static_args (dict): The raw static_args dict as it is read
-            from the *.ini config file.
+        static_args (dict): The raw `static_args` dictionary as it is
+            read from the `*.ini` configuration file.
             
     Returns:
-        The static_args dict with proper types for all variables.
+        The `static_args` dictionary with proper types for all values.
     """
 
     args = copy.deepcopy(static_args)

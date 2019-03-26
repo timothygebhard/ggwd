@@ -1,5 +1,6 @@
 """
-Provide tools for writing and reading sample files.
+Provide tools for writing and reading the sample HDF files produced by
+the sample generation.
 """
 
 # -----------------------------------------------------------------------------
@@ -20,22 +21,26 @@ from warnings import warn
 # -----------------------------------------------------------------------------
 
 class SampleFile:
+    """
+    :class:`SampleFile` objects serve as an abstraction for the result
+    files of the sample generation.
+
+    Args:
+        data (dict): A dictionary containing the following keys:
+            
+            .. code-block:: python
+            
+               {'command_line_arguments', 'static_arguments',
+                'injection_samples', 'noise_samples',
+                'injection_parameters', 'normalization_parameters'}
+            
+            The value for every key must again be a dictionary relating
+            the names of sample parameters (e.g., 'h1_snr') to a numpy
+            array containing the values for that parameter.
+    """
 
     def __init__(self,
                  data=None):
-        """
-        Instantiate a new SampleFile object.
-
-        Args:
-            data (dict): A dictionary containing the following keys:
-                    {'command_line_arguments', 'static_arguments',
-                     'injection_samples', 'noise_samples',
-                     'injection_parameters', 'normalization_parameters'}
-                The value of every key is again a dictionary relating
-                the names of sample parameters (e.g., 'h1_snr') to a
-                numpy array containing the values for that parameter
-                (for all samples).
-        """
 
         # Perform sanity checks on data
         self.__check_data(data)
@@ -60,9 +65,12 @@ class SampleFile:
         the data fail any of these sanity checks.
 
         Args:
-            data (dict): A dictionary as specified in the __init__ of
-                this class, that is, a dictionary containing the
+            data (dict): A dictionary as specified in the ``__init__``
+                of this class, that is, a dictionary containing the
                 following keys:
+                
+                .. code-block:: python
+                
                     {'command_line_arguments', 'static_arguments',
                      'injection_samples', 'noise_samples',
                      'injection_parameters', 'normalization_parameters'}
@@ -114,13 +122,13 @@ class SampleFile:
 
     def read_hdf(self, file_path):
         """
-        Read in an existing HDF sample file (e.g., to use a SampleFile
-        object as a convenience wrapper for accessing the contents of
-        an HDF samples file).
+        Read in an existing HDF sample file (e.g., to use an instance
+        of :class:`SampleFile` as a convenience wrapper for accessing
+        the contents of an HDF samples file).
 
         Args:
             file_path (str): The path to the HDF file to be read into
-                the SampleFile object.
+                the :class:`SampleFile` object.
         """
 
         # Clear the existing data
@@ -250,7 +258,8 @@ class SampleFile:
                      command_line_arguments=False,
                      split_injections_noise=False):
         """
-        Return the contents of the SampleFile as a pandas data frame.
+        Return the contents of the :class:`SampleFile` as a ``pandas``
+        data frame.
 
         Args:
             injection_parameters (bool): Whether or not to return
@@ -264,9 +273,9 @@ class SampleFile:
                 samples with and without an injection.
 
         Returns:
-            One (or two, if `split_injections_noise` is set to True)
+            One (or two, if `split_injections_noise` is set to `True`)
             pandas data frame containing the sample stored in the
-            SampleFile object.
+            :class:`SampleFile` object.
         """
 
         # Create a data frame for the samples containing an injection
