@@ -31,7 +31,7 @@ def get_file_paths(directory, extensions=None):
     Args:
         directory (str): Path to a directory.
         extensions (list): List of allowed file extensions,
-            for example: ['hdf', 'h5'].
+            for example: `['hdf', 'h5']`.
 
     Returns:
         List of paths of all files matching the above descriptions.
@@ -68,7 +68,7 @@ def get_strain_from_hdf_file(hdf_file_paths,
     `target_sampling_rate`.
 
     Args:
-        hdf_file_paths (dict): A dictionary with keys {'H1', 'L1'},
+        hdf_file_paths (dict): A dictionary with keys `{'H1', 'L1'}`,
             which holds the paths to the HDF files containing the
             interval around `gps_time`.
         gps_time (int): A (valid) background noise time (GPS timestamp).
@@ -84,10 +84,10 @@ def get_strain_from_hdf_file(hdf_file_paths,
             `pycbc.types.timeseries.TimeSeries`.
 
     Returns:
-        A dictionary with keys {'H1', 'L1'}. For each key, the dict
-        contains a strain sample (as a numpy array) of the given length,
-        centered around `gps_time`, (down)-sampled to the desired
-        `target_sampling_rate`.
+        A dictionary with keys `{'H1', 'L1'}`. For each key, the
+        dictionary contains a strain sample (as a numpy array) of the
+        given length, centered around `gps_time`, (down)-sampled to
+        the desired `target_sampling_rate`.
     """
 
     # -------------------------------------------------------------------------
@@ -173,6 +173,24 @@ def get_strain_from_hdf_file(hdf_file_paths,
 # -----------------------------------------------------------------------------
 
 class NoiseTimeline:
+    """
+    A ``NoiseTimeline`` object stores information about the data
+    quality and hardware injection flags of the files in the given
+    `background_data_directory`. This is information is read in only
+    once at the beginning of the sample generation and can then be
+    utilized to quickly sample "valid" noise times, that is, GPS times
+    where the files in `background_data_directory` provide data which
+    pass certain desired quality criteria.
+    
+    Args:
+        background_data_directory (str): Path to the directory which
+            contains the raw data (HDF files). These files may also be
+            distributed over several subdirectories.
+        random_seed (int): Seed for the random number generator which
+            is used for sampling valid noise times.
+        verbose (bool): Whether or not this instance should print
+            logging information to the command line.
+    """
 
     def __init__(self,
                  background_data_directory,
@@ -209,13 +227,14 @@ class NoiseTimeline:
 
     def vprint(self, string, *args, **kwargs):
         """
-        verbose print: Wrapper around print() to only call it if
-        self.verbose is set to true.
+        Verbose printing: Wrapper around `print()` to only call it if
+        `self.verbose` is set to true.
 
         Args:
-            string (str): String to be printed if self.verbose is True.
-            *args: arguments passed to print()
-            **kwargs: keyword arguments passed to print()
+            string (str): String to be printed if `self.verbose`
+                is `True`.
+            *args: Arguments passed to `print()`.
+            **kwargs: Keyword arguments passed to `print()`.
         """
 
         if self.verbose:
@@ -310,10 +329,16 @@ class NoiseTimeline:
                  dq_bits=(0, 1, 2, 3),
                  inj_bits=(0, 1, 2, 4)):
         """
-        For a given GPS time, test if is a valid time to sample noise
-        from by checking if all data points in the interval
-            [gps_time - delta_t, gps_time + delta_t]
-        have the specified dq_bits and inj_bits set.
+        For a given `gps_time`, check if is a valid time to sample
+        noise from by checking if all data points in the interval
+        `[gps_time - delta_t, gps_time + delta_t]` have the specified
+        `dq_bits` and `inj_bits` set.
+        
+        .. seealso:: For more information about the `dq_bits` and
+            `inj_bits`, check out the website of the GW Open Science
+            Center, which explains these for the case of O1:
+            
+                https://www.gw-openscience.org/archive/dataset/O1
 
         Args:
             gps_time (int): The GPS time whose validity we are checking.
@@ -321,20 +346,18 @@ class NoiseTimeline:
                 which we also want to be valid (because the sample will
                 be an interval).
             dq_bits (tuple): The Data Quality Bits which one would like
-                to require, see here:
-                    https://www.gw-openscience.org/archive/dataset/O1/
-                For example: dq_bits=(0, 1, 2, 3) means that the DQ
-                needs  to pass all tests up to `CAT3`.
+                to require (see note above).
+                *For example:* `dq_bits=(0, 1, 2, 3)` means that the
+                data quality needs  to pass all tests up to `CAT3`.
             inj_bits (tuple): The Injection Bits which one would like
-                to require, see here:
-                    https://www.gw-openscience.org/archive/dataset/O1/
-                For example: inj_bits=(0, 1, 2, 4) means that only
+                to require (see note above).
+                *For example:* `inj_bits=(0, 1, 2, 4)` means that only
                 continuous wave (CW) injections are permitted; all
                 recordings containing any of other type of injection
                 will be invalid for sampling.
 
         Returns:
-            True if `gps_time` is valid, otherwise False.
+            `True` if `gps_time` is valid, otherwise `False`.
         """
 
         # ---------------------------------------------------------------------
@@ -452,19 +475,23 @@ class NoiseTimeline:
                return_paths=False):
 
         """
-        Randomly sample a time from [gps_start_time, gps_end_time] that
-        passes the is_valid() test.
+        Randomly sample a time from `[gps_start_time, gps_end_time]`
+        which passes the :func:`NoiseTimeline.is_valid()` test.
 
         Args:
-            delta_t (int): For an explanation, see is_valid().
-            dq_bits (tuple): For an explanation, see is_valid().
-            inj_bits (tuple): For an explanation, see is_valid().
+            delta_t (int): For an explanation, see
+                :func:`NoiseTimeline.is_valid()`.
+            dq_bits (tuple): For an explanation, see
+                :func:`NoiseTimeline.is_valid()`.
+            inj_bits (tuple): For an explanation, see
+                :func:`NoiseTimeline.is_valid()`.
             return_paths (bool): Whether or not to return the paths to
                 the HDF files containing the `gps_time`.
 
         Returns:
-            A valid GPS time and optionally a dict with the file paths
-            to the HDF files containing that GPS time.
+            A valid GPS time and optionally a `dict` with the file
+            paths to the HDF files containing that GPS time (keys will
+            correspond to the different detectors).
         """
 
         # Keep sampling random times until we find a valid one...
@@ -493,8 +520,8 @@ class NoiseTimeline:
             gps_time (int): A valid GPS time stamp.
 
         Returns:
-            A dictionary with keys {'H1', 'L1'} containing the paths to
-            the HDF files, or None if no such files could be found.
+            A dictionary with keys `{'H1', 'L1'}` containing the paths
+            to the HDF files, or None if no such files could be found.
         """
 
         # Keep track of the results, i.e., the paths to the HDF files
@@ -527,7 +554,7 @@ class NoiseTimeline:
         the observation run, as determined from the HDF files.
 
         Args:
-            idx (int): An index of a timeseries array (covering an
+            idx (int): An index of a time series array (covering an
                 observation run).
 
         Returns:
@@ -545,7 +572,7 @@ class NoiseTimeline:
 
         Args:
             gps (int): A GPS time belonging to a point in time between
-                the start and end of an obversation run.
+                the start and end of an observation run.
 
         Returns:
             The corresponding time series index.
@@ -558,7 +585,7 @@ class NoiseTimeline:
     @property
     def gps_start_time(self):
         """
-        Returns: The GPS start time of the observation run.
+        The GPS start time of the observation run.
         """
 
         return self.hdf_files[0]['start_time']
@@ -568,7 +595,7 @@ class NoiseTimeline:
     @property
     def gps_end_time(self):
         """
-        Returns: The GPS end time of the observation run.
+        The GPS end time of the observation run.
         """
 
         return self.hdf_files[-1]['start_time'] + \

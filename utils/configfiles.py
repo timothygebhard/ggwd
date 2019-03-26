@@ -21,16 +21,22 @@ from .staticargs import amend_static_args, typecast_static_args
 
 def read_ini_config(file_path):
     """
-    Read in a *.ini config file, which is used to specify the physical
-    aspects of the waveform simulation.
+    Read in a `*.ini` config file, which is used mostly to specify the
+    waveform simulation (for example, the waveform model, the parameter
+    space for the binary black holes, etc.) and return its contents.
     
     Args:
-        file_path (str): Path to the *.ini config file to be read in.
+        file_path (str): Path to the `*.ini` config file to be read in.
 
     Returns:
-        A tuple `(variable_arguments, static_arguments)` containing
-        the variable and static arguments (names; and in the latter
-        case also the values) defined in the specified config file.
+        A tuple `(variable_arguments, static_arguments)`:
+        
+        * `variable_arguments` should simply be a list of all the
+          parameters which get randomly samples from the specified
+          distributions.
+        * `static_arguments` should be a dictionary containing the keys
+          and values of those parameters that are the same for each
+          example (i.e., the non-physical parameters).
     """
     
     # Make sure the config file actually exists
@@ -54,14 +60,16 @@ def read_ini_config(file_path):
 
 def read_json_config(file_path):
     """
-    Read in a *.json config file, which is used to specify the
-    "technical" aspects of the sample generation process.
+    Read in a `*.json` config file, which is used to specify the
+    sample generation process itself (for example, the number of
+    samples to generate, the number of concurrent processes to use,
+    etc.) and return its contents.
     
     Args:
-        file_path (str): Path to the *.json config file to be read in.
+        file_path (str): Path to the `*.json` config file to be read in.
 
     Returns:
-        A dictionary containing the contents of the given JSON file.
+        A `dict` containing the contents of the given JSON file.
     """
     
     # Make sure the config file actually exists
