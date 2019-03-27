@@ -16,7 +16,7 @@ import sys
 import time
 
 from itertools import count
-from multiprocessing import Process, JoinableQueue
+from multiprocessing import Process, Queue
 from tqdm import tqdm
 
 from utils.configfiles import read_ini_config, read_json_config
@@ -37,8 +37,8 @@ def queue_worker(arguments, results_queue):
     Args:
         arguments (dict): Dictionary containing the arguments that are
             passed to generate_sample().
-        results_queue (JoinableQueue): The queue to which the results
-            of this worker / process are passed.
+        results_queue (Queue): The queue to which the results of this
+            worker / process are passed.
     """
     
     # Try to generate a sample using the given arguments and store the result
@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # Initialize a waveform parameter generator that can sample injection
     # parameters from the distributions specified in the config file
     waveform_parameter_generator = \
-        WaveformParameterGenerator(config_file=[ini_config_path],
+        WaveformParameterGenerator(config_file=ini_config_path,
                                    random_seed=random_seed)
 
     # Wrap it in a generator expression so that we can we can easily sample
@@ -242,12 +242,12 @@ if __name__ == '__main__':
 
         # Initialize a Queue and fill it with as many arguments as we
         # want to generate samples
-        arguments_queue = JoinableQueue()
+        arguments_queue = Queue()
         for i in range(n_samples):
             arguments_queue.put(next(arguments_generator))
 
         # Initialize a Queue and a list to store the generated samples
-        results_queue = JoinableQueue()
+        results_queue = Queue()
         results_list = []
 
         # ---------------------------------------------------------------------
