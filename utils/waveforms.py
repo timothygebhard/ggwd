@@ -1,5 +1,6 @@
 """
-Provide tools for generating and processing GW waveforms.
+Provide methods for generating and processing simulated
+gravitational-wave waveforms.
 """
 
 # -----------------------------------------------------------------------------
@@ -25,6 +26,21 @@ from pycbc.types.timeseries import TimeSeries
 # -----------------------------------------------------------------------------
 
 class WaveformParameterGenerator(object):
+    """
+    :class:`WaveformParameterGenerator` objects are essentially just a
+    simple convenience wrapper to construct the joint probability
+    distribution (and provide a method to draw samples from it) of the
+    parameters specified by the `[variable_args]` section of an
+    `*.ini` configuration file and their distributions as defined in
+    the corresponding `[prior-*]` sections.
+    
+    Args:
+        config_file (str): Path to the `*.ini` configuration file,
+            which contains the information about the parameters to be
+            generated and their distributions.
+        random_seed (int): Seed for the random number generator.
+            Caveat: We can only set the seed of the global numpy RNG.
+    """
 
     def __init__(self,
                  config_file,
@@ -56,12 +72,14 @@ class WaveformParameterGenerator(object):
 
     def draw(self):
         """
-        Sample from the joint distribution and construct a dict that
-        connects the parameter names with values generated for them.
+        Draw a sample from the joint distribution and construct a
+        dictionary that maps the parameter names to the values
+        generated for them.
 
         Returns:
-            A dictionary containing a set of randomly sampled waveform
-            parameters (e.g., masses, spins, position, ...).
+            A `dict` containing a the names and values of a set of
+            randomly sampled waveform parameters (e.g., masses, spins,
+            position in the sky, ...).
         """
         values = apply_transforms(self.pval.rvs(), self.trans)[0]
         result = dict(zip(self.var_args, values))
@@ -115,24 +133,44 @@ def get_waveform(static_arguments,
     based on the `static_arguments` (which define, e.g., the waveform
     model to be used) and the `waveform_params`, which specify the
     physical parameters of the waveform (e.g., the masses and spins).
-
+    
+    .. note::
+       The actual simulation of the waveform is, depending on your
+       choice of the `domain`, performed by the PyCBC methods
+       :func:`get_td_waveform()` and :func:`get_fd_waveform()`,
+       respectively.
+       These take as arguments a combination of the `static_arguments`
+       and the `waveform_params.` A (more) comprehensive explanation of
+       the parameters that are supported by these methods can be found
+       in the `PyCBC documentation <https://pycbc.org/pycbc/latest/html/
+       pycbc.waveform.html#pycbc.waveform.waveform.get_td_waveform>`_.
+       Currently, however, only the following keys are actually passed
+       to the simulation routines:
+       
+       .. code-block:: python
+          
+          {'approximant', 'coa_phase', 'delta_f', 'delta_t',
+           'distance', 'f_lower', 'inclination', 'mass1', 'mass2',
+           'spin1z', 'spin2z'}
+           
+    .. warning::
+       If you want to use a different waveform model or a different
+       parameter space, you may need to edit this function according
+       to your exact needs!
+    
+    
     Args:
         static_arguments (dict): The static arguments (e.g., the
             waveform approximant and the sampling rate) defined in the
-            waveform parameters config file.
-        waveform_params (dict): There does not seem to exist any
-            comprehensive documentation  of which parameters are
-            actually supported by the methods
-                `get_td_waveform()` and `get_fd_waveform()`,
-            or rather the underlying LALSuite methods.
-            So far, we are using the following simulation parameters:
-                {'approximant', 'coa_phase', 'delta_f', 'delta_t',
-                 'distance', 'f_lower', 'inclination', 'mass1,
-                 'mass2', 'spin1z', 'spin2z'}
-            NOTE: If you want to use a different waveform model or a
-            different parameter space, you may need to edit this
-            function according to your needs!
-
+            `*.ini` configuration file, which specify technical aspects
+            of the simulation process.
+        waveform_params (dict): The physical parameters of the
+            waveform to be simulated, such as the masses or the
+            position in the sky. Usually, these values are sampled
+            using a :class:`WaveformParameterGenerator` instance,
+            which is based in the variable arguments section in the
+            `*.ini` configuration file.
+    
     Returns:
         A tuple `(h_plus, h_cross)` with the two polarization modes of
         the simulated waveform, resized to the desired length.
@@ -185,27 +223,32 @@ def get_detector_signals(static_arguments,
                          event_time,
                          waveform):
     """
-    Project the raw `waveform` = `(h_plus, h_cross)` onto the antenna
-    patterns of the detectors in Hanford and Livingston. This requires
-    the position of the source in the sky, which is contained in
-    `waveform_params`.
+    Project the raw `waveform` (i.e., the tuple `(h_plus, h_cross)`
+    returned by :func:`get_waveform()`) onto the antenna patterns of
+    the detectors in Hanford and Livingston. This requires the position
+    of the source in the sky, which is contained in `waveform_params`.
 
     Args:
         static_arguments (dict): The static arguments (e.g., the
             waveform approximant and the sampling rate) defined in the
-            waveform parameters config file.
-        waveform_params (dict): This dictionary must contain at least
-            the following parameters:
-                - 'ra' = right ascension
-                - 'dec' = declination
-                - 'polarization' = polarization
-                - 'event_time' = event time (by convention the H1 time)
-        event_time (int): The (randomly sampled) GPS time for the event.
-        waveform (tuple): The tuple `(h_plus, h_cross)` that is usually
-            generated by get_waveform().
+            `*.ini` configuration file.
+        waveform_params (dict): The parameters that were used as inputs
+            for the waveform simulation, although this method will only
+            require the following parameters to be present:
+        
+                - ``ra`` = Right ascension of the source
+                - ``dec`` = Declination of the source
+                - ``polarization`` = Polarization angle of the source
+                
+        event_time (int): The GPS time for the event, which, by
+            convention, is the time at which the simulated signal
+            reaches its maximum amplitude in the `H1` channel.
+        waveform (tuple): The pure simulated wavefrom, represented by
+            a tuple `(h_plus, h_cross)`, which is usually generated
+            by :func:`get_waveform()`.
 
     Returns:
-        A dictionary with keys {'H1', 'L1'} that contains the pure
+        A dictionary with keys `{'H1', 'L1'}` that contains the pure
         signal as it would be observed at Hanford and Livingston.
     """
 

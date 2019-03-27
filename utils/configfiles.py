@@ -29,14 +29,16 @@ def read_ini_config(file_path):
         file_path (str): Path to the `*.ini` config file to be read in.
 
     Returns:
-        A tuple `(variable_arguments, static_arguments)`:
+        A tuple `(variable_arguments, static_arguments)` where
         
         * `variable_arguments` should simply be a list of all the
-          parameters which get randomly samples from the specified
-          distributions.
+          parameters which get randomly sampled from the specified
+          distributions, usually using an instance of
+          :class:`utils.waveforms.WaveformParameterGenerator`.
         * `static_arguments` should be a dictionary containing the keys
-          and values of those parameters that are the same for each
-          example (i.e., the non-physical parameters).
+          and values of the parameters that are the same for each
+          example that is generated (i.e., the non-physical parameters
+          such as the waveform model and the sampling rate).
     """
     
     # Make sure the config file actually exists

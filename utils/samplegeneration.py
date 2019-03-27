@@ -1,6 +1,6 @@
 """
-Provide the generate_sample() method, which is at the heart of the
-sample generation process.
+Provide the :func:`generate_sample()` method, which is at the heart of
+the sample generation process.
 """
 
 # -----------------------------------------------------------------------------
@@ -39,21 +39,21 @@ def generate_sample(static_arguments,
         static_arguments (dict): A dictionary containing global
             technical parameters for the sample generation, for example
             the target_sampling_rate of the output.
-        event_tuple (tuple): A tuple (event_time, file_path), which
-            specified the GPS time at which to make an injection, and
+        event_tuple (tuple): A tuple `(event_time, file_path)`, which
+            specifies the GPS time at which to make an injection and
             the path of the HDF file which contains said GPS time.
-            If `file_path` is None, synthetic noise will be used
-            instead, and the `event_time` only serves as a seed for
+            If `file_path` is `None`, synthetic noise will be used
+            instead and the `event_time` only serves as a seed for
             the corresponding (random) noise generator.
         waveform_params (dict): A dictionary containing the randomly
-            sampled parameters that as the input to the waveform model
-            (e.g., the masses, spins, position, ...).
+            sampled parameters that are passed as inputs to the
+            waveform model (e.g., the masses, spins, position, ...).
 
     Returns:
         A tuple `(sample, injection_parameters)`, which contains the
-        generated `sample` itself (a dict with keys {'event_time',
-        'h1_strain', 'l1_strain'}), and the `injection_parameters`,
-        which are either None (in case no injection was made), or a
+        generated `sample` itself (a dict with keys `{'event_time',
+        'h1_strain', 'l1_strain'}`), and the `injection_parameters`,
+        which are either `None` (in case no injection was made), or a
         dict containing the `waveform_params` and some additional
         parameters (e.g., single detector SNRs).
     """
