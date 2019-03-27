@@ -7,4 +7,7 @@ PyCBC==1.13.5
 requests
 scipy
 six
+sphinx
+sphinx-rtd-theme
+sphinxcontrib-napoleon
 tqdm
