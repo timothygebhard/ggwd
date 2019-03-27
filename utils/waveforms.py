@@ -49,8 +49,10 @@ class WaveformParameterGenerator(object):
         # Fix the seed for the random number generator
         np.random.seed(random_seed)
 
-        # Read in the config.ini file
-        config_file = WorkflowConfigParser(configFiles=config_file)
+        # Read in the configuration file using a WorkflowConfigParser.
+        # Note that the argument `configFiles` has to be a list here,
+        # so we need to wrap the `config_file` argument accordingly...
+        config_file = WorkflowConfigParser(configFiles=[config_file])
 
         # Extract variable arguments and constraints
         # We don't need the static_args here, hence they do not get amended.
