@@ -10,7 +10,7 @@ gravitational-wave waveforms.
 from __future__ import print_function
 
 import numpy as np
-from scipy import signal
+from scipy.signal.windows import tukey
 
 from pycbc.distributions import JointDistribution, read_params_from_config, \
     read_constraints_from_config, read_distributions_from_config
@@ -115,7 +115,7 @@ def fade_on(timeseries,
     sample_rate = timeseries.sample_rate
 
     # Create a one-sided Tukey window for the turn on
-    window = signal.tukey(int(duration * sample_rate), alpha)
+    window = tukey(M=int(duration * sample_rate), alpha=alpha)
     window[int(0.5*len(window)):] = 1
 
     # Apply the one-sided Tukey window for the fade-on
