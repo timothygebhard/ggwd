@@ -95,7 +95,7 @@ def generate_sample(static_arguments,
 
         # Actually generate the noise using the PSD and LALSimulation
         noise = dict()
-        for det in ('H1', 'L1'):
+        for i, det in enumerate(('H1', 'L1')):
 
             # Compute the length of the noise sample in time steps
             noise_length = noise_interval_width * target_sampling_rate
@@ -104,7 +104,7 @@ def generate_sample(static_arguments,
             noise[det] = noise_from_psd(length=noise_length,
                                         delta_t=(1.0 / target_sampling_rate),
                                         psd=psd,
-                                        seed=event_time)
+                                        seed=(2 * event_time + i))
 
             # Manually fix the noise start time to match the fake event time.
             # However, for some reason, the correct setter method seems broken?
