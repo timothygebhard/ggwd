@@ -40,7 +40,8 @@ process of generationg synthetic GW data.
    userguide/setup
    userguide/get-data
    userguide/sample-creation
-   userguide/inspect-results
+   userguide/plot-results
+   userguide/real-events
    userguide/configfiles
    userguide/details
 

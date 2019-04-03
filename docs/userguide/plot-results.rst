@@ -1,7 +1,7 @@
-.. _view-results:
+.. _plot-results:
 
-View the results
-================
+Plotting the results
+====================
 
 As soon as the sample generation process is complete, you can manually inspect 
 the results to get a feel for what they look like. 
