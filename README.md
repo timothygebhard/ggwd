@@ -2,7 +2,7 @@
 
 The purpose of this repository is to provide a starting point for **generating realistic synthetic gravitational-wave data** which can then be used, for example, as training data for machine learning experiments.
 
-More specifically, the methods provided here will help you with the simulation of GW signals from compact binary coalescences (e.g., binary black hole mergers), adding these signals into a pieces of background noise (either synethetic or real LIGO background recordings) and applying standard post-processing steps (e.g., whitening and band-passing) to results.
+More specifically, the methods provided here will help you with the simulation of GW signals from compact binary coalescences (e.g., binary black hole mergers), adding these signals into a pieces of background noise (either synthetic or real LIGO background recordings) and applying standard post-processing steps (e.g., whitening and band-passing) to results.
 
 **Disclaimer**: The scripts in this repository are mostly just convenience wrappers around functionalities provided by the great and mighty [PyCBC software package](https://pycbc.org/) (which itself relies in parts on the [LIGO Algorithm Library](https://wiki.ligo.org/Computing/DASWG/LALSuite)).
 
@@ -10,10 +10,10 @@ More specifically, the methods provided here will help you with the simulation o
 
 ## Quickstart
 
-As of now, this project is not a "proper" Python package, but only a collection of scripts, which don't need to be installed. Simply clone the repository:
+As of now, this project is not a "proper" Python package, but only a collection of scripts, which don't need to be installed. Therefore, simply clone the repository:
 
 ```
-git clone git@github.com:timothygebhard/ggwd.git
+git clone git@github.com:timothygebhard/ggwd.git ; cd ggwd
 ```
 
 Ensure your Python environment fulfills all the requirements specified in `requirements.txt` (ideally, simply use a fresh virtual environment). **Please note that due to the dependence on PyCBC, this code only works with Python 2.7!** Now, you should be able to generate your first data sample by simply running:
