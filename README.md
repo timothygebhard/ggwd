@@ -1,10 +1,10 @@
 # ggwd: generate gravitational-wave data
 
-The purpose of this repository is to provide a starting point for **generating realistic synthetic gravitational-wave data** which can then be used, for example, as training data for machine learning experiments.
+The purpose of this repository is to provide a starting point for **generating realistic synthetic gravitational-wave data** which can then be used, for example, as training data for machine learning experiments. It was originally developed for our paper [*Convolutional neural networks: a magic bullet for gravitational-wave detection?*](https://arxiv.org/abs/1904.08693) [arXiv:1904.08693] and used to generate the training data for the network presented there.
 
-More specifically, the methods provided here will help you with the simulation of GW signals from compact binary coalescences (e.g., binary black hole mergers), adding these signals into a pieces of background noise (either synthetic or real LIGO background recordings) and applying standard post-processing steps (e.g., whitening and band-passing) to results.
+More specifically, the methods provided in this repository here will help you with the simulation of GW signals from compact binary coalescences (e.g., binary black hole mergers), adding these signals into a pieces of background noise (either synthetic or real LIGO background recordings) and applying standard post-processing steps (e.g., whitening and band-passing) to results.
 
-**Disclaimer**: The scripts in this repository are mostly just convenience wrappers around functionalities provided by the great and mighty [PyCBC software package](https://pycbc.org/) (which itself relies in parts on the [LIGO Algorithm Library](https://wiki.ligo.org/Computing/DASWG/LALSuite)).
+**Disclaimer**: The scripts here are mostly just convenience wrappers around functionalities provided by the great and mighty [PyCBC software package](https://pycbc.org/) (which itself relies in parts on the [LIGO Algorithm Library](https://wiki.ligo.org/Computing/DASWG/LALSuite)).
 
 
 
