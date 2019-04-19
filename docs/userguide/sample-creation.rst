@@ -25,6 +25,6 @@ should eventually be stored in the ``/output`` directory.
 *Ta-dah!* That's it already! Really quite simple, isn't it? :-)
 
 Starting from here, your next steps should either be to check out how you can
-:ref:`view-results` of the sample generation process or learn more about the 
+:ref:`plot-results` of the sample generation process or learn more about the 
 :ref:`configuration-files` that offer you fine-grained control over the entire
 sample generation process.

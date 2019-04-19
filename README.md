@@ -24,7 +24,7 @@ python generate_sample.py
 
 This will some default values generate a small demo sample file in the `./output` directory. Please check out the documentation to see how to adjust the configuration to your needs, and, for example, also generate samples using real LIGO recordings as the background noise.
 
-You can then use the `view_sample.py` script to inspect the results, which should look something like this:
+You can then use the `plot_sample.py` script to inspect the results, which should look something like this:
 
 ![](./docs/userguide/images/sample_with_injection.png)
 

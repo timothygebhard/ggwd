@@ -5,13 +5,13 @@ Plotting the results
 
 As soon as the sample generation process is complete, you can manually inspect 
 the results to get a feel for what they look like. 
-To this end, we have prepared the script ``view_sample.py`` in the root 
+To this end, we have prepared the script ``plot_sample.py`` in the root 
 directory of the repository. 
 You can run it as follows:
 
 .. code-block:: bash
 
-   python view_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --save-plot=/where/to/save/the/result.pdf
+   python plot_sample.py --hdf-file-path=/path/to/hdf/sample/file --sample-id=N --plot-path=/where/to/save/the/result.pdf
 
 
 If you haven't changed the configuration, you don't even need to specify the 
@@ -29,9 +29,9 @@ you will get a sample that does not contain an injection (i.e., that is just
 whitened background noise).
 
 Finally, you should specify the location where you want to store the resulting 
-plot using the ``--save-plot`` flag. 
+plot using the ``--plot-path`` flag. 
 Note that you can always learn more about the possible command line options 
-by running ``python view_sample.py —help``.
+by running ``python plot_sample.py —help``.
 
 If everything worked as expected, you should get a result plot that looks 
 something like the following:
@@ -58,7 +58,7 @@ interferometer --- just one of the subleties of generating realistic
 gravitational-wave data that the scripts in this repository are automatically
 taking care of.
 
-Finally, if you run the ``view_sample.py`` script for a sample that does 
+Finally, if you run the ``plot_sample.py`` script for a sample that does 
 *not* contain an injection, you will of course only get the whitened strain
 without any not gravitational-wave signals:
 
