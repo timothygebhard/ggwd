@@ -91,6 +91,9 @@ class ProgressBar:
         # Start the stop watch as soon as we start iterating
         self.start_time = time.time()
 
+        # Initialize index to 0 to ensure it is always defined
+        index = 0
+
         # Start the scheduler that will update the elapsed time every second
         def update():
             self.progressbar = self.get_progressbar(index)
