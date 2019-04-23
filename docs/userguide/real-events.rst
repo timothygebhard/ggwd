@@ -31,7 +31,7 @@ section holds the pre-processing parameters to be used (e.g., the limits
 for the band-pass).
 
 The resulting output file will have one group per event (named, for example, 
-``GW150914``), with each group containing exactly two datasets: ``h1_strain`` 
+``GW150914``), with each group containing exactly two data sets: ``h1_strain`` 
 and ``l1_strain``.
 These hold a (by default 16 second long) time series array of the 
 pre-processed strain interval centered around the GW event.
