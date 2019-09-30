@@ -6,7 +6,7 @@
 [![arXiv](https://img.shields.io/badge/arXiv-1904.08693-red.svg)](https://arxiv.org/abs/1904.08693)
 [![DOI](https://zenodo.org/badge/154147244.svg)](https://zenodo.org/badge/latestdoi/154147244)
 
-The purpose of this repository is to provide a starting point for **generating realistic synthetic gravitational-wave data** which can then be used, for example, as training data for machine learning experiments. It was originally developed for our paper [*Convolutional neural networks: a magic bullet for gravitational-wave detection?*](https://arxiv.org/abs/1904.08693) [arXiv:1904.08693] and used to generate the training and testing data for the network presented there.
+The purpose of this repository is to provide a starting point for **generating realistic synthetic gravitational-wave data** which can then be used, for example, as training data for machine learning experiments. It was originally developed for our paper [*Convolutional neural networks: a magic bullet for gravitational-wave detection?*](https://journals.aps.org/prd/abstract/10.1103/PhysRevD.100.063015) [[arXiv:1904.08693](https://arxiv.org/abs/1904.08693)] and used to generate the training and testing data for the network presented there.
 
 More specifically, the methods provided in this repository here will help you with the simulation of GW signals from compact binary coalescences (e.g., binary black hole mergers), adding these signals into a pieces of background noise (either synthetic or real LIGO background recordings) and applying standard post-processing steps (e.g., whitening and band-passing) to results.
 
