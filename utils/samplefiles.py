@@ -206,29 +206,31 @@ class SampleFile:
             # dict as a new dataset
             group = hdf_file.create_group('injection_samples')
             for key, value in iteritems(self.data['injection_samples']):
+                dtype = 'float64' if key == 'event_time' else 'float32'
                 if value is not None:
                     group.create_dataset(name=key,
                                          shape=value.shape,
-                                         dtype='f4',
+                                         dtype=dtype,
                                          data=value)
                 else:
                     group.create_dataset(name=key,
                                          shape=None,
-                                         dtype='f4')
+                                         dtype=dtype)
 
             # Create group for noise_samples and save every item of the
             # dict as a new dataset
             group = hdf_file.create_group('noise_samples')
             for key, value in iteritems(self.data['noise_samples']):
+                dtype = 'float64' if key == 'event_time' else 'float32'
                 if value is not None:
                     group.create_dataset(name=key,
                                          shape=value.shape,
-                                         dtype='f4',
+                                         dtype=dtype,
                                          data=value)
                 else:
                     group.create_dataset(name=key,
                                          shape=None,
-                                         dtype='f4')
+                                         dtype=dtype)
 
             # Create group for injection_parameters and save every item of the
             # dict as a new dataset
@@ -237,12 +239,12 @@ class SampleFile:
                 if value is not None:
                     group.create_dataset(name=key,
                                          shape=value.shape,
-                                         dtype='f4',
+                                         dtype='float64',
                                          data=value)
                 else:
                     group.create_dataset(name=key,
                                          shape=None,
-                                         dtype='f4')
+                                         dtype='float64')
 
             # Create group for normalization_parameters and save every item
             # of the dict as a new attribute
