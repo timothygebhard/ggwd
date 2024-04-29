@@ -1,3 +1,9 @@
+> [!IMPORTANT]
+> **April 29, 2024:** First of all, thank you for your interest in this work! However, please note that the code in this repository is no longer actively maintained, and is kept mainly for archival purposes. Feel free to use it as is, or fork it and make your own updated version, but I assume that there should be some more up-to-date code bases from people who are still working on gravitational waves.
+
+---
+
+
 # ggwd: generate gravitational-wave data
 
 [![Python](https://img.shields.io/badge/Python-2.7-yellow.svg)]()
