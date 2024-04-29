@@ -83,8 +83,20 @@ class WaveformParameterGenerator(object):
             randomly sampled waveform parameters (e.g., masses, spins,
             position in the sky, ...).
         """
+
         values = apply_transforms(self.pval.rvs(), self.trans)[0]
         result = dict(zip(self.var_args, values))
+
+        # Ensure that mass1 is greater than mass2 (standard convention)
+        #
+        # Note from April 29, 2024:
+        # This part was missing in the original implementation that was used
+        # to generate the results in the "Magic Bullet" paper, but I have
+        # run a full reproducibility study (i.e., generated data, trained the
+        # model, and ran the evaluation routine) and verified that adding this
+        # constraint has no effect on the results of the original paper.
+        if result["mass2"] > result["mass1"]:
+            result["mass1"], result["mass2"] = result["mass2"], result["mass1"]
 
         return result
 
