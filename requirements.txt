@@ -1,10 +1,10 @@
 # For running the code
 h5py
-lalsuite==6.53
+lalsuite==7.21
 matplotlib
 numpy
 pandas
-PyCBC==1.13.6
+PyCBC==2.4.0
 requests
 scipy
 six

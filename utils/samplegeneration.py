@@ -210,7 +210,7 @@ def generate_sample(static_arguments,
                                 'l1_snr': snrs['L1']}
 
         # Also add the waveform parameters we have sampled
-        for key, value in waveform_params.iteritems():
+        for key, value in waveform_params.items():
             injection_parameters[key] = value
 
     # -------------------------------------------------------------------------

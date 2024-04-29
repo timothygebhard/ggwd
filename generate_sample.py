@@ -65,8 +65,8 @@ if __name__ == '__main__':
     # Preliminaries
     # -------------------------------------------------------------------------
 
-    # Disable output buffering ('flush' option is not available for Python 2)
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
+    # Disable file locking for HDF files
+    os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 
     # Start the stopwatch
     script_start = time.time()
